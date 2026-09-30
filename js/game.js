@@ -552,18 +552,19 @@
   }
   function hostSlot(name, slot, gen){
     if(gen!=null && gen!==matchGen) return;
-    if(net&&net.role==="host"&&net.peer&&net.slot===slot) return;
     const peer=new Peer(liveId(slot), PEER_CFG);
     let opened=false;
     net={role:"host",code:"R"+(slot+1),peer,conns:[],slot}; youId="p1"; localTwo=false;
     lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
-    showLobby("Room "+(slot+1)+" — waiting "+MAXP+" max");
-    peer.on("open",()=>{ opened=true; renderLobby(); });
+    showLobby("Opening room...");
+    peer.on("open",()=>{ opened=true; showLobby("Waiting for players"); renderLobby(); });
     peer.on("connection",attachHost);
-    peer.on("error",()=>{
-      if(opened || (net&&net.peer===peer && net.role==="host" && lobbyRoster.length>1)) return;
-      try{peer.destroy();}catch(e){}
-      if(gen===matchGen) quickJoin(name, slot+1, gen);
+    peer.on("error",err=>{
+      const t=String((err&&err.type)||err||"");
+      if(opened) return;
+      try{ peer.destroy(); }catch(e){}
+      if(/unavail|taken|exists/i.test(t)) joinSlot(name, slot, function(){ hostSlot(name, slot+1, gen); }, gen);
+      else if(gen===matchGen) joinSlot(name, slot, function(){ hostSlot(name, slot, gen); }, gen);
     });
   }
   function joinSlot(name, slot, next, gen){
@@ -571,19 +572,19 @@
     const my=uid();
     const peer=new Peer(PEER_CFG);
     net={role:"client",code:"R"+(slot+1),peer,hostConn:null,slot}; youId=my; localTwo=false;
-    showLobby("Checking room "+(slot+1)+"...");
-    let opened=false;
-    const fail=setTimeout(()=>{ if(!opened && gen===matchGen){ try{peer.destroy();}catch(e){} next(); } }, 3500);
-    peer.on("open",()=>{
+    showLobby("Joining room...");
+    let opened=false, tries=0;
+    function connect(){
+      if(gen!==matchGen) return;
       const conn=peer.connect(liveId(slot),{reliable:true});
       net.hostConn=conn;
       conn.on("open",()=>{
-        opened=true; clearTimeout(fail);
+        opened=true;
         conn.send({t:"hello",id:my,name,gun:selectedGun});
-        showLobby("In room "+(slot+1));
+        showLobby("In lobby");
       });
       conn.on("data",msg=>{
-        if(msg.t==="full"){ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); return; }
+        if(msg.t==="full"){ try{peer.destroy();}catch(e){} if(gen===matchGen) hostSlot(name, slot+1, gen); return; }
         if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; counting=false; renderLobby(); }
         if(msg.t==="count"){ counting=true; showCount(msg.n); }
         if(msg.t==="ping"){ try{ conn.send({t:"pong",t0:msg.t0}); }catch(e){} }
@@ -596,43 +597,23 @@
           if(window.SFX){ SFX.boot(); SFX.start(); }
         }
       });
-      conn.on("error",()=>{ if(opened) return; clearTimeout(fail); try{peer.destroy();}catch(e){} if(gen===matchGen) next(); });
-    });
-    peer.on("error",()=>{ if(opened) return; clearTimeout(fail); try{peer.destroy();}catch(e){} if(gen===matchGen) next(); });
+      conn.on("error",()=>{
+        if(opened) return;
+        tries++;
+        if(tries<5) setTimeout(connect, 700);
+        else if(gen===matchGen) next();
+      });
+    }
+    peer.on("open", connect);
+    peer.on("error",()=>{ if(!opened && gen===matchGen) setTimeout(connect, 800); });
   }
   let matchGen=0;
-  function quickJoin(name, slot, gen){
-    slot=slot||0;
-    gen = gen==null?matchGen:gen;
-    if(slot>=ROOMS){ hostSlot(name, ROOMS-1, gen); return; }
-    showLobby("Quick match...");
-    joinSlot(name, slot, ()=>hostSlot(name, slot, gen), gen);
-  }
-  function tryMerge(){ return;
-    if(!net || mode==="play" || counting) return;
-    if(net.slot===0 || lobbyRoster.length>=MAXP) return;
-    const name=(nameInput&&nameInput.value||"PLAYER").toUpperCase();
-    const probe=new Peer(PEER_CFG);
-    const t=setTimeout(()=>{ try{probe.destroy();}catch(e){} },1800);
-    probe.on("open",()=>{
-      const c=probe.connect(liveId(0),{reliable:true});
-      c.on("open",()=>c.send({t:"hello",id:"probe"+uid(),name:"?",gun:"pistol",probe:1}));
-      c.on("data",msg=>{
-        if(msg.t==="lobby" && (msg.roster||[]).length<MAXP && (msg.roster||[]).length>lobbyRoster.length){
-          clearTimeout(t); try{probe.destroy();}catch(e){}
-          const keep=name;
-          leaveLobby();
-          setTimeout(()=>joinSlot(keep,0,()=>hostSlot(keep,0)),300);
-        }
-        if(msg.t==="full"){ clearTimeout(t); try{probe.destroy();}catch(e){} }
-      });
-    });
-  }
   function playNow(){
     if(typeof Peer==="undefined"){ alert("Online failed"); return; }
     const name=(nameInput.value||"PLAYER").toUpperCase();
     matchGen++;
-    quickJoin(name,0,matchGen);
+    showLobby("Finding the same room...");
+    hostSlot(name, 0, matchGen);
   }
   function joinOnline(){ playNow(); }
 
