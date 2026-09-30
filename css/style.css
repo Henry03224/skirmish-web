@@ -68,3 +68,11 @@ button.ghost { background:transparent; color:var(--accent); border:1px solid var
   width:56px; height:56px; flex:none; border-radius:50%; font-size:10px;
   background:#7cf0ffbb;
 }
+
+.code { font-size:28px; letter-spacing:.18em; font-weight:800; margin:8px 0; color:var(--accent); }
+.lobby-list { list-style:none; margin:8px 0; padding:0; }
+.lobby-list li {
+  padding:10px 12px; margin:6px 0; background:#0b1116; border:1px solid #334;
+  border-radius:10px; font-weight:700; letter-spacing:.04em;
+}
+#btnStart { display:none; }
