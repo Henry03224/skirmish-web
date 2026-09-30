@@ -28,16 +28,24 @@
           <div class="row"><button id="btnSolo" class="ghost">Solo vs Bots</button></div>
         </div>
       </div>
-      <div id="lobby" class="overlay hidden">
-        <div class="panel">
-          <h1>ROOM</h1>
-          <p id="lobbyCode" class="code">----</p>
-          <p id="lobbyStatus" class="sub">Connecting...</p>
-          <ul id="lobbyList" class="lobby-list"></ul>
-          <p id="countDown" class="code hidden"></p>
-          <div class="row">
-            <button id="btnReady">READY</button>
-            <button id="btnLeave" class="ghost">Leave</button>
+      <div id="lobby" class="overlay lobby-screen hidden">
+        <div class="lobby-wrap">
+          <div class="lobby-left">
+            <p id="lobbyStatus" class="lobby-status">SELECTING A SERVER<br>ACQUIRING A LOBBY</p>
+            <ul id="lobbyList" class="lobby-list"></ul>
+          </div>
+          <div class="lobby-right">
+            <p id="lobbyCode" class="lobby-room">ROOM</p>
+            <div class="map-card">
+              <img src="assets/maps/canyon.svg" alt="">
+              <div>
+                <b>CANYON</b>
+                <span>FREE-FOR-ALL</span>
+              </div>
+            </div>
+            <button id="btnReady" type="button">READY</button>
+            <button id="btnLeave" class="ghost" type="button">LEAVE</button>
+            <p id="countDown" class="starts-in hidden">GAME STARTS IN: 3</p>
           </div>
         </div>
       </div>
