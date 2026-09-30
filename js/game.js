@@ -318,7 +318,7 @@
   const LIVE_ID="swhenlive";
   function renderLobby(){
     if(!lobbyListEl) return;
-    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+"</li>").join("")||"<li>Looking...</li>";
+    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+(p.ready?"  ✓ READY":"  …")+"</li>").join("")||"<li>Looking...</li>";
     if(lobbyCodeEl) lobbyCodeEl.textContent="LIVE";
     if(lobbyStatusEl && !lobbyStatusEl.dataset.lock)
       lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for players...":lobbyRoster.length+" in lobby";
@@ -348,23 +348,22 @@
     if(!net.conns.includes(conn)) net.conns.push(conn);
     conn.on("data",msg=>{
       if(msg.t==="hello"&&lobbyRoster.length<8&&!lobbyRoster.find(p=>p.id===msg.id)){
-        lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
+        lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
         renderLobby();
         sendAll({t:"lobby",roster:lobbyRoster});
         if(mode==="play"){
           if(!players.find(p=>p.id===msg.id)) players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
           try{ conn.send({t:"snap",snap:serialize()}); }catch(e){}
-        } else if(lobbyRoster.length>=2){
-          setTimeout(beginMatch, 900);
         }
       }
+      if(msg.t==="ready") markReady(msg.id);
       if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
     });
   }
   function hostLive(name){
     const peer=new Peer(LIVE_ID, PEER_CFG);
     net={role:"host",code:"LIVE",peer,conns:[]}; youId="p1"; localTwo=false;
-    lobbyRoster=[{id:"p1",name,gun:selectedGun}];
+    lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
     showLobby("You are host. Waiting for players...");
     renderLobby();
     peer.on("open",()=>showLobby("Host ready. Waiting for players..."));
@@ -396,7 +395,8 @@
         showLobby("In lobby. Waiting for others...");
       });
       conn.on("data",msg=>{
-        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; renderLobby(); showLobby("In lobby"); }
+        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; renderLobby(); showLobby("In lobby — tap READY"); }
+        if(msg.t==="count") showCount(msg.n);
         if(msg.t==="start"||msg.t==="snap"){
           clearTimeout(tmo);
           hideLobby();
@@ -407,6 +407,39 @@
       });
     });
     peer.on("error",()=>{});
+  }
+  let counting=false;
+  function allReady(){ return lobbyRoster.length>=2 && lobbyRoster.every(p=>p.ready); }
+  function markReady(id){
+    const p=lobbyRoster.find(x=>x.id===id); if(p) p.ready=true;
+    renderLobby();
+    if(net&&net.role==="host"){
+      sendAll({t:"lobby",roster:lobbyRoster});
+      if(allReady()&&!counting) startCountdown();
+    }
+  }
+  function startCountdown(){
+    counting=true;
+    let n=3;
+    const tick=()=>{
+      sendAll({t:"count",n});
+      showCount(n);
+      if(n<=0){ beginMatch(); counting=false; return; }
+      n--; setTimeout(tick,1000);
+    };
+    tick();
+  }
+  function showCount(n){
+    const el=document.getElementById("countDown");
+    if(!el) return;
+    el.classList.remove("hidden");
+    el.textContent = n<=0 ? "GO" : String(n);
+    if(lobbyStatusEl) lobbyStatusEl.textContent = n<=0 ? "Starting..." : "All ready — "+n;
+  }
+  function iAmReady(){
+    const id=youId;
+    if(net&&net.role==="host") markReady(id);
+    else if(net&&net.hostConn){ try{ net.hostConn.send({t:"ready",id}); }catch(e){} markReady(id); }
   }
   function playNow(){
     if(typeof Peer==="undefined"){ alert("Online failed to load"); return; }
@@ -456,7 +489,7 @@
   });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
-  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnJoin=document.getElementById("btnJoin"); if(btnJoin) btnJoin.onclick=joinOnline; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
+  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnJoin=document.getElementById("btnJoin"); if(btnJoin) btnJoin.onclick=joinOnline; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby; const btnReady=document.getElementById("btnReady"); if(btnReady) btnReady.onclick=iAmReady;
   document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
   const muteBtn=document.getElementById("btnMute");
   if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
