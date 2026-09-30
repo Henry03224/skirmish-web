@@ -307,8 +307,39 @@
     const me=players.find(p=>p.id===youId)||players[0]; if(me) drawHud(me);
   }
   function serialize(){ return {startAt,players,bullets,nades,pickups,flashes,winner,mode,mapId}; }
-  function applySnap(s){ startAt=s.startAt; players=s.players; bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner; if(s.mapId) useMap(s.mapId); players.forEach((p,i)=>{ if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI]; }); if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); } }
-  function loop(){ requestAnimationFrame(loop); const me=players.find(p=>p.id===youId); if(mode==="play"){ if(me&&me.kind==="human") readHuman(me,1); if(localTwo){ const p2=players.find(p=>p.id==="p2"); if(p2) readHuman(p2,2); } const host=!net||net.role==="host"; if(host){ stepWorld(); if(net&&net.conns){ const snap=serialize(); net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} }); } } else if(net&&me){ try{ net.hostConn.send({t:"in",id:youId,input:me.input}); }catch(e){} } draw(); } }
+  function applySnap(s){
+    const keep=players.find(p=>p.id===youId);
+    const savedIn=keep&&keep.input, savedAim=keep&&keep.aim;
+    startAt=s.startAt; players=s.players||[]; bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner;
+    if(s.mapId) useMap(s.mapId);
+    players.forEach((p,i)=>{
+      if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI];
+      if(!p.input) p.input={l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0};
+    });
+    const me=players.find(p=>p.id===youId);
+    if(me){ if(savedIn) me.input=savedIn; if(savedAim!=null) me.aim=savedAim; }
+    if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); }
+  }
+  let snapT=0;
+  function loop(){
+    requestAnimationFrame(loop);
+    const me=players.find(p=>p.id===youId);
+    if(mode==="play"){
+      if(me){ if(!me.input) me.input={l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0}; readHuman(me,1); }
+      if(localTwo){ const p2=players.find(p=>p.id==="p2"); if(p2) readHuman(p2,2); }
+      const host=!net||net.role==="host";
+      if(host){
+        stepWorld();
+        if(net&&net.conns&&net.conns.length){
+          const now=performance.now();
+          if(now-snapT>80){ snapT=now; const snap=serialize(); net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} }); }
+        }
+      } else if(net&&net.hostConn&&me){
+        try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){}
+      }
+      draw();
+    }
+  }
   function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=a[(Math.random()*a.length)|0]; return s; }
   const lobbyEl=document.getElementById("lobby");
   const lobbyCodeEl=document.getElementById("lobbyCode");
@@ -388,7 +419,7 @@
         }
       }
       if(msg.t==="ready") markReady(msg.id);
-      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
+      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p){ p.input=msg.input||p.input; if(msg.aim!=null) p.aim=msg.aim; } }
     });
   }
   function hostSlot(name, slot){
