@@ -176,7 +176,7 @@
       if(p.vy>1.6) p.vy*=0.88;
       p.jet-=0.14;
       particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
-      if(window.SFX) SFX.jet();
+      if(window.SFX && p.id===youId) SFX.jet();
     } else p.jet=Math.min(100,p.jet+0.32);
     p.vy=clamp(p.vy+GRAV,-MAX_VY,MAX_VY); p.x+=p.vx; p.y+=p.vy; p.x=clamp(p.x,16,WW-16);
     if(p.y>WH+40){ p.hp=0; hurt(p,999,p.id); }
@@ -190,6 +190,9 @@
     for(const pk of pickups){ if(pk.tmr>0){ pk.tmr--; continue; } if(Math.hypot(pk.x-p.x,pk.y-p.y)<30){ if(pk.t==="health") p.hp=Math.min(p.maxHp||100,p.hp+45); if(GUN[pk.t]){ p.weapon=pk.t; p.ammo=9999; } pk.tmr=380; if(window.SFX) SFX.pickup(); } }
   }
   function stepWorld(){
+    const now=performance.now();
+    for(const p of players){ if(p.id!==youId && p.kind==="human" && p.inAt && now-p.inAt>220){ if(p.input){ p.input.jet=0; p.input.fire=0; } } }
+
     tick++;
     const left=MATCH_MS-(performance.now()-startAt);
     if(left<=0&&!winner){ winner=[...players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)[0]; mode="end"; document.getElementById("endTitle").textContent=winner.name+" wins"; document.getElementById("endBody").textContent=players.map(p=>p.name+" "+p.kills+"K/"+p.deaths+"D").join(" · "); end.classList.remove("hidden"); if(window.SFX) SFX.win(); return; }
@@ -444,7 +447,7 @@
         }
       }
       if(msg.t==="ready") markReady(msg.id);
-      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p){ p.input=msg.input||p.input; if(msg.aim!=null) p.aim=msg.aim; } }
+      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p){ p.input=msg.input||p.input; if(msg.aim!=null) p.aim=msg.aim; p.inAt=performance.now(); } }
     });
   }
   function hostSlot(name, slot){
