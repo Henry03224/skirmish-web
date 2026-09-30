@@ -7,7 +7,7 @@
   const roomInput = document.getElementById("roomInput");
   const WW = 1920, WH = 1080;
   let VW = 1280, VH = 720;
-  const GRAV = 0.28, JET = 0.42, MOVE = 0.34, FRIC = 0.90, MAX_VX = 4.2, MAX_VY = 6.4;
+  const GRAV = 0.26, JET = 0.34, MOVE = 0.16, FRIC = 0.88, MAX_VX = 2.8, MAX_VY = 5.4;
   const MATCH_MS = 120000;
   const GUNS = ["pistol","smg","shot","sniper"];
   const GUN = {
@@ -130,10 +130,10 @@
     if(p.input.r){ p.vx+=MOVE; }
     p.vx=clamp(p.vx*FRIC,-MAX_VX,MAX_VX);
     if(p.input.jet&&p.jet>0){
-      p.vy-=JET; p.jet-=0.72;
+      p.vy-=JET; p.jet-=0.26;
       particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
       if(window.SFX) SFX.jet();
-    } else p.jet=Math.min(100,p.jet+0.38);
+    } else p.jet=Math.min(100,p.jet+0.22);
     p.vy=clamp(p.vy+GRAV,-MAX_VY,MAX_VY); p.x+=p.vx; p.y+=p.vy; p.x=clamp(p.x,16,WW-16);
     if(p.y>WH+40){ p.hp=0; hurt(p,999,p.id); }
     p.grounded=platHit(p);
@@ -159,7 +159,7 @@
   }
   function drawSoldier(p){
     if(!onScreen(p.x,p.y,90)) return;
-    const x=wx(p.x), y=wy(p.y+(p.bob||0)), s=cam().sc*0.62; const im=spriteImgs[p.skinI]; const w=40*s,h=36*s;
+    const x=wx(p.x), y=wy(p.y+(p.bob||0)), s=cam().sc*0.82; const im=spriteImgs[p.skinI]; const w=40*s,h=36*s;
     const lean = clamp((p.vx||0)*0.08,-0.18,0.18);
     const swing=Math.sin(p.walk||0)*0.7;
     ctx.save(); ctx.translate(x,y); ctx.rotate(lean);
