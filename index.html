@@ -2,44 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#070b10" />
   <title>Skirmish Web</title>
-  <meta name="description" content="Original 2D jetpack stick shooter. Play in the browser vs bots, 2-player, or online rooms." />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="mark">SW</span>
-        <div>
-          <strong>Skirmish Web</strong>
-          <small>original stick shooter</small>
-        </div>
-      </div>
-      <div id="hudMeta" class="hud-meta">Ready</div>
-    </header>
+    <button id="btnFs" class="fs-btn" type="button">FULL</button>
     <main id="stage">
       <canvas id="game" width="1280" height="720"></canvas>
       <div id="menu" class="overlay">
         <div class="panel">
-          <h1>SKIRMISH WEB</h1>
-          <p class="sub">Classic LAN energy. Original code and stick figures. Not Mini Militia.</p>
+          <h1>SKIRMISH</h1>
+          <p class="sub">Anime squad. Fullscreen. Built for Android Chrome.</p>
           <label>Callsign
-            <input id="nameInput" maxlength="12" placeholder="PLAYER" />
+            <input id="nameInput" maxlength="12" placeholder="PLAYER" autocomplete="off" />
           </label>
           <div class="row">
             <button id="btnSolo">Play vs Bots</button>
-            <button id="btnLocal">2P Same Screen</button>
           </div>
           <div class="row">
-            <button id="btnHost" class="ghost">Host Online Room</button>
+            <button id="btnLocal" class="ghost">2P Same Screen</button>
+            <button id="btnHost" class="ghost">Host Room</button>
           </div>
           <div class="row join">
-            <input id="roomInput" maxlength="8" placeholder="ROOM CODE" />
+            <input id="roomInput" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
             <button id="btnJoin" class="ghost">Join</button>
           </div>
-          <p class="hint">P1: WASD + Space jetpack + J fire / K grenade · P2: Arrows + Shift + / ?</p>
+          <p class="hint">Phone: left stick move · right stick aim/fire · JET / NADE. I-rotate landscape.</p>
         </div>
       </div>
       <div id="end" class="overlay hidden">
@@ -49,13 +43,13 @@
           <button id="btnAgain">Menu</button>
         </div>
       </div>
-      <div id="touch" class="touch hidden">
-        <div class="pad" id="padMove"></div>
-        <div class="btns">
+      <div id="touch" class="touch">
+        <div class="stick" id="stickL"><i></i></div>
+        <div class="mid">
           <button data-act="jump">JET</button>
-          <button data-act="fire">FIRE</button>
           <button data-act="nade">NADE</button>
         </div>
+        <div class="stick fire" id="stickR"><i></i></div>
       </div>
     </main>
   </div>
