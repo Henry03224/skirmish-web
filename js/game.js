@@ -7,7 +7,7 @@
   const roomInput = document.getElementById("roomInput");
   const WW = 1920, WH = 1080;
   let VW = 1280, VH = 720;
-  const GRAV = 0.18, JET = 0.50, MOVE = 0.20, FRIC = 0.90, MAX_VX = 3.2, MAX_VY = 4.6;
+  const GRAV = 0.18, JET = 0.28, MOVE = 0.18, FRIC = 0.90, MAX_VX = 2.6, MAX_VY = 3.4;
   const MATCH_MS = 120000;
   const GUNS = ["pistol","smg","shot","sniper"];
   const GUN = {
@@ -167,14 +167,14 @@
     if(!p.alive){ p.respawn--; if(p.respawn<=0){ const s=spawnPoint(); Object.assign(p,{x:s.x,y:s.y,vx:0,vy:0,hp:p.maxHp||100,jet:100,ammo:9999,nades:2,alive:true}); } return; }
     const moving = p.input.l||p.input.r;
     const flying=p.input.jet&&p.jet>0;
-    const steer=flying?MOVE*1.35:MOVE;
+    const steer=flying?MOVE*1.08:MOVE;
     if(p.input.l){ p.vx-=steer; }
     if(p.input.r){ p.vx+=steer; }
-    p.vx=clamp(p.vx*(flying?0.94:FRIC),-MAX_VX,MAX_VX);
+    p.vx=clamp(p.vx*(flying?0.91:FRIC),-MAX_VX,MAX_VX);
     if(flying){
       p.vy-=JET;
-      if(p.vy>0.8) p.vy*=0.72;
-      p.jet-=0.13;
+      if(p.vy>1.6) p.vy*=0.88;
+      p.jet-=0.14;
       particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
       if(window.SFX) SFX.jet();
     } else p.jet=Math.min(100,p.jet+0.32);
