@@ -274,7 +274,12 @@
     ctx.fillText(me.weapon.toUpperCase()+"  UNLIM   JET "+jet, 16, 78);
     const left=Math.max(0,MATCH_MS-(performance.now()-startAt));
     ctx.textAlign="right"; ctx.fillText((left/1000|0)+"s", VW-12, 18);
-    if(net){ ctx.font="11px sans-serif"; ctx.fillText((net.code||"PUB")+"  "+players.filter(p=>p.kind==="human").length+"P", VW-12, 34); }
+    if(net){
+      ctx.font="11px sans-serif";
+      ctx.fillText((net.code||"PUB")+"  "+players.filter(p=>p.kind==="human").length+"P", VW-12, 34);
+      ctx.fillStyle = pingMs<80?"#3dff8a": pingMs<160?"#ffe14a":"#ff4d4d";
+      ctx.fillText(pingMs?("PING "+pingMs+" ms"):"PING --", VW-12, 50);
+    }
   }
   function draw(){
     updateCam();
@@ -326,7 +331,7 @@
     if(me){ if(savedIn) me.input=savedIn; if(savedAim!=null) me.aim=savedAim; }
     if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); }
   }
-  let snapT=0, inT=0;
+  let snapT=0, inT=0, pingMs=0, pingAt=0;
   function loop(){
     requestAnimationFrame(loop);
     const me=players.find(p=>p.id===youId);
@@ -343,6 +348,10 @@
         }
       } else if(net&&net.hostConn&&me){
         if(now-inT>50){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
+        if(now-pingAt>1000){ pingAt=now; try{ net.hostConn.send({t:"ping",t0:now}); }catch(e){} }
+      }
+      if(net&&net.role==="host"&&net.conns&&net.conns.length&&now-pingAt>1000){
+        pingAt=now; sendAll({t:"ping",t0:now});
       }
       draw();
     }
@@ -451,6 +460,8 @@
         }
       }
       if(msg.t==="ready") markReady(msg.id);
+      if(msg.t==="ping"){ try{ conn.send({t:"pong",t0:msg.t0}); }catch(e){} }
+      if(msg.t==="pong"&&msg.t0) pingMs=Math.max(1, Math.round(performance.now()-msg.t0));
       if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p){ p.input=msg.input||p.input; if(msg.aim!=null) p.aim=msg.aim; p.inAt=performance.now(); } }
     });
   }
@@ -482,6 +493,8 @@
         if(msg.t==="full"){ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); return; }
         if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; counting=false; renderLobby(); }
         if(msg.t==="count"){ counting=true; showCount(msg.n); }
+        if(msg.t==="ping"){ try{ conn.send({t:"pong",t0:msg.t0}); }catch(e){} }
+        if(msg.t==="pong"&&msg.t0) pingMs=Math.max(1, Math.round(performance.now()-msg.t0));
         if(msg.t==="start"||msg.t==="snap"){
           hideLobby();
           if(msg.snap) applySnap(msg.snap);
