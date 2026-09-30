@@ -1,18 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
-  <defs><linearGradient id="skyf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#163020"/><stop offset="1" stop-color="#2a4a28"/></linearGradient></defs>
-  <rect width="1920" height="1080" fill="url(#skyf)"/>
-  <ellipse cx="200" cy="900" rx="80" ry="140" fill="#1a3a1c"/>
-  <ellipse cx="1720" cy="880" rx="90" ry="160" fill="#1a3a1c"/>
-  <rect x="0" y="980" width="1920" height="100" fill="#2a4a22"/>
-  <rect x="0" y="1020" width="1920" height="60" fill="#1a3018"/>
-  <rect x="70" y="860" width="340" height="20" fill="#6a4a28"/>
-  <rect x="1510" y="860" width="340" height="20" fill="#6a4a28"/>
-  <rect x="480" y="720" width="360" height="20" fill="#7a5a30"/>
-  <rect x="1080" y="720" width="360" height="20" fill="#7a5a30"/>
-  <rect x="780" y="560" width="360" height="20" fill="#8a6a38"/>
-  <rect x="160" y="480" width="240" height="18" fill="#6a4a28"/>
-  <rect x="1520" y="480" width="240" height="18" fill="#6a4a28"/>
-  <rect x="620" y="340" width="220" height="16" fill="#7a5a30"/>
-  <rect x="1080" y="340" width="220" height="16" fill="#7a5a30"/>
-  <rect x="880" y="200" width="160" height="16" fill="#9a7a40"/>
+  <defs>
+    <linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e2418"/><stop offset=".5" stop-color="#1a3c24"/><stop offset="1" stop-color="#0c2014"/>
+    </linearGradient>
+    <linearGradient id="fwood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c48a48"/><stop offset="1" stop-color="#6a3e18"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#fsky)"/>
+  <ellipse cx="160" cy="820" rx="70" ry="220" fill="#0e2a14"/>
+  <ellipse cx="160" cy="620" rx="120" ry="90" fill="#163c1c"/>
+  <ellipse cx="1760" cy="800" rx="80" ry="240" fill="#0e2a14"/>
+  <ellipse cx="1760" cy="600" rx="130" ry="100" fill="#163c1c"/>
+  <rect x="0" y="980" width="1920" height="100" fill="#163018"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#0a180e"/>
+  <rect x="48" y="560" width="32" height="460" fill="#3a2410"/>
+  <rect x="1840" y="560" width="32" height="460" fill="#3a2410"/>
+  <rect x="944" y="560" width="32" height="460" fill="#3a2410"/>
+  <rect x="70" y="860" width="340" height="20" fill="url(#fwood)"/>
+  <rect x="1510" y="860" width="340" height="20" fill="url(#fwood)"/>
+  <rect x="480" y="720" width="360" height="20" fill="url(#fwood)"/>
+  <rect x="1080" y="720" width="360" height="20" fill="url(#fwood)"/>
+  <rect x="780" y="560" width="360" height="20" fill="url(#fwood)"/>
+  <rect x="160" y="480" width="240" height="18" fill="url(#fwood)"/>
+  <rect x="1520" y="480" width="240" height="18" fill="url(#fwood)"/>
+  <rect x="620" y="340" width="220" height="16" fill="url(#fwood)"/>
+  <rect x="1080" y="340" width="220" height="16" fill="url(#fwood)"/>
+  <rect x="880" y="200" width="160" height="16" fill="#d4a060"/>
+  <rect x="70" y="860" width="340" height="4" fill="#e8c080"/>
+  <rect x="1510" y="860" width="340" height="4" fill="#e8c080"/>
+  <rect x="780" y="560" width="360" height="4" fill="#e8c080"/>
 </svg>

@@ -1,15 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
-  <defs><linearGradient id="skyi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ec8e8"/><stop offset="1" stop-color="#d8eef8"/></linearGradient></defs>
-  <rect width="1920" height="1080" fill="url(#skyi)"/>
+  <defs>
+    <linearGradient id="isky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ab8dc"/><stop offset=".55" stop-color="#d8eef8"/><stop offset="1" stop-color="#b8d4e4"/>
+    </linearGradient>
+    <linearGradient id="iice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9cc0d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#isky)"/>
+  <ellipse cx="240" cy="130" rx="80" ry="26" fill="#ffffff66"/>
+  <ellipse cx="1600" cy="100" rx="110" ry="30" fill="#ffffff55"/>
   <rect x="0" y="980" width="1920" height="100" fill="#c8dce8"/>
-  <rect x="0" y="1020" width="1920" height="60" fill="#9bb4c4"/>
-  <rect x="80" y="860" width="360" height="22" fill="#e8f4fa"/>
-  <rect x="1480" y="860" width="360" height="22" fill="#e8f4fa"/>
-  <rect x="560" y="720" width="800" height="22" fill="#d0e8f4"/>
-  <rect x="200" y="580" width="280" height="18" fill="#e8f4fa"/>
-  <rect x="1440" y="580" width="280" height="18" fill="#e8f4fa"/>
-  <rect x="740" y="440" width="440" height="18" fill="#f4fbff"/>
-  <rect x="100" y="300" width="240" height="16" fill="#e8f4fa"/>
-  <rect x="1580" y="300" width="240" height="16" fill="#e8f4fa"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#8aa8bc"/>
+  <rect x="44" y="540" width="36" height="480" fill="url(#iice)"/>
+  <rect x="1840" y="540" width="36" height="480" fill="url(#iice)"/>
+  <rect x="942" y="440" width="36" height="580" fill="#b8d4e4"/>
+  <rect x="80" y="860" width="360" height="22" fill="url(#iice)"/>
+  <rect x="1480" y="860" width="360" height="22" fill="url(#iice)"/>
+  <rect x="560" y="720" width="800" height="22" fill="url(#iice)"/>
+  <rect x="200" y="580" width="280" height="18" fill="url(#iice)"/>
+  <rect x="1440" y="580" width="280" height="18" fill="url(#iice)"/>
+  <rect x="740" y="440" width="440" height="18" fill="url(#iice)"/>
+  <rect x="100" y="300" width="240" height="16" fill="url(#iice)"/>
+  <rect x="1580" y="300" width="240" height="16" fill="url(#iice)"/>
   <rect x="860" y="180" width="200" height="16" fill="#ffffff"/>
+  <rect x="80" y="860" width="360" height="4" fill="#ffffff"/>
+  <rect x="1480" y="860" width="360" height="4" fill="#ffffff"/>
+  <rect x="560" y="720" width="800" height="4" fill="#ffffff"/>
+  <path d="M300 1020 L330 900 L360 1020Z" fill="#d8eef8"/>
+  <path d="M1580 1020 L1620 880 L1660 1020Z" fill="#d8eef8"/>
 </svg>
