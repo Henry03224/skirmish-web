@@ -616,6 +616,32 @@
     hostSlot(name, 0, matchGen);
   }
   function joinOnline(){ playNow(); }
+  function lobbyRefresh(){
+    if(mode==="play" || counting) return;
+    if(!net || !lobbyEl || lobbyEl.classList.contains("hidden")) return;
+    if(lobbyRoster.length>=2) return;
+    const name=(nameInput&&nameInput.value||"PLAYER").toUpperCase();
+    if(lobbyStatusEl) lobbyStatusEl.innerHTML="REFRESHING ROOM<br>LOOKING FOR PLAYERS";
+    if(net.role==="host" && net.slot>0){
+      matchGen++;
+      try{ if(net.peer) net.peer.destroy(); }catch(e){}
+      net=null;
+      joinSlot(name, 0, function(){ hostSlot(name, 0, matchGen); }, matchGen);
+      return;
+    }
+    if(net.role==="client"){
+      try{
+        if(net.hostConn) net.hostConn.send({t:"hello",id:youId,name,gun:selectedGun});
+        else if(net.peer) net.peer.connect(liveId(net.slot||0),{reliable:true});
+      }catch(e){
+        matchGen++;
+        joinSlot(name, 0, function(){ hostSlot(name, 0, matchGen); }, matchGen);
+      }
+    }
+    if(net&&net.role==="host") sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
+    renderLobby();
+  }
+  setInterval(lobbyRefresh, 5000);
 
   function bindStick(el, side){
     let pid=null;
