@@ -271,6 +271,7 @@
     ctx.fillText(me.weapon.toUpperCase()+"  UNLIM   JET "+jet, 16, 78);
     const left=Math.max(0,MATCH_MS-(performance.now()-startAt));
     ctx.textAlign="right"; ctx.fillText((left/1000|0)+"s", VW-12, 18);
+    if(net){ ctx.font="11px sans-serif"; ctx.fillText((net.code||"PUB")+"  "+players.filter(p=>p.kind==="human").length+"P", VW-12, 34); }
   }
   function draw(){
     updateCam();
@@ -313,12 +314,18 @@
   const lobbyCodeEl=document.getElementById("lobbyCode");
   const lobbyStatusEl=document.getElementById("lobbyStatus");
   const lobbyListEl=document.getElementById("lobbyList");
-  const PUB="skirmishwebpub";
+  const PEER_CFG={ debug:0, config:{ iceServers:[
+    {urls:"stun:stun.l.google.com:19302"},
+    {urls:"stun:stun1.l.google.com:19302"},
+    {urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"}
+  ]}};
+  function pubId(){ return "swb"+Math.floor(Date.now()/180000); }
   function renderLobby(){
     if(!lobbyListEl) return;
     lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+"</li>").join("");
-    if(lobbyCodeEl) lobbyCodeEl.textContent="PUBLIC";
-    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for others...":lobbyRoster.length+" soldiers in arena";
+    if(lobbyCodeEl) lobbyCodeEl.textContent=(net&&net.code)||pubId();
+    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for others in this arena...":lobbyRoster.length+" soldiers connected";
   }
   function showLobby(msg){
     menu.classList.add("hidden");
@@ -334,66 +341,73 @@
     if(net&&net.peer) try{net.peer.destroy();}catch(e){}
     net=null; lobbyRoster=[]; players=[];
   }
-  function enterArena(list){
-    hideLobby();
-    resetWorld(list);
+  function pushSnap(conn){
+    try{ if(conn) conn.send({t:"snap",snap:serialize()}); }catch(e){}
   }
   function attachHost(conn){
-    net.conns.push(conn);
+    if(!net.conns.includes(conn)) net.conns.push(conn);
+    conn.on("open",()=>pushSnap(conn));
     conn.on("data",msg=>{
-      if(msg.t==="hello"&&players.length<8){
-        const np=makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol");
-        players.push(np);
+      if(msg.t==="hello"&&players.length<8&&!players.find(p=>p.id===msg.id)){
+        players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
         lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
         renderLobby();
+        pushSnap(conn);
+        sendAll({t:"snap",snap:serialize()});
       }
       if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
     });
   }
-  function becomeHost(name){
-    const peer=new Peer(PUB);
-    net={role:"host",code:"PUBLIC",peer,conns:[]}; youId="p1"; localTwo=false;
+  function becomeHost(name, id){
+    const room=id||pubId();
+    const peer=new Peer(room, PEER_CFG);
+    net={role:"host",code:room,peer,conns:[]}; youId="p1"; localTwo=false;
     lobbyRoster=[{id:"p1",name,gun:selectedGun}];
+    showLobby("Hosting "+room+"...");
     peer.on("open",()=>{
-      showLobby("You are host. Others will appear here.");
-      enterArena([makePlayer("p1",name,0,"human",selectedGun)]);
+      if(lobbyCodeEl) lobbyCodeEl.textContent=room;
+      resetWorld([makePlayer("p1",name,0,"human",selectedGun)]);
+      hideLobby();
     });
     peer.on("error",err=>{
-      if(String(err&&err.type).includes("unavailable") || String(err).includes("unavailable") || String(err).includes("taken") || String(err).includes("ID")){
-        try{peer.destroy();}catch(e){}
-        becomeClient(name);
-      } else if(lobbyStatusEl) lobbyStatusEl.textContent="Retrying...";
+      const t=String((err&&err.type)||err||"");
+      try{peer.destroy();}catch(e){}
+      if(/unavail|taken|exists|is taken/i.test(t)) becomeClient(name, room);
+      else becomeClient(name, room);
     });
     peer.on("connection",attachHost);
   }
-  function becomeClient(name){
+  function becomeClient(name, room){
     const my=uid();
-    const peer=new Peer();
-    net={role:"client",code:"PUBLIC",peer,hostConn:null}; youId=my; localTwo=false;
-    showLobby("Joining public arena...");
+    const peer=new Peer(PEER_CFG);
+    net={role:"client",code:room,peer,hostConn:null}; youId=my; localTwo=false;
+    showLobby("Joining "+room+"...");
+    let got=false;
+    const fail=setTimeout(()=>{ if(!got){ try{peer.destroy();}catch(e){} becomeHost(name, room+"x"); } }, 7000);
     peer.on("open",()=>{
-      const conn=peer.connect(PUB);
+      const conn=peer.connect(room, {reliable:true});
       net.hostConn=conn;
       conn.on("open",()=>{
         conn.send({t:"hello",id:my,name,gun:selectedGun});
-        showLobby("In arena. Waiting for world...");
+        showLobby("Connected. Syncing...");
       });
       conn.on("data",msg=>{
         if(msg.t==="snap"){
+          got=true; clearTimeout(fail);
           hideLobby();
           applySnap(msg.snap);
           mode="play"; menu.classList.add("hidden"); goFs();
           if(window.SFX){ SFX.boot(); SFX.start(); }
         }
       });
-      conn.on("error",()=>{ showLobby("Host lost. Becoming host..."); becomeHost(name); });
+      conn.on("error",()=>{});
     });
-    peer.on("error",()=>showLobby("Connecting..."));
+    peer.on("error",()=>{ showLobby("Retry join..."); });
   }
   function playNow(){
     if(typeof Peer==="undefined"){ alert("Online failed"); return; }
     const name=(nameInput.value||"PLAYER").toUpperCase();
-    showLobby("Finding public arena...");
+    showLobby("Finding arena...");
     becomeHost(name);
   }
   function hostOnline(){ playNow(); }
