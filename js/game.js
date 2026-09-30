@@ -59,11 +59,9 @@
     const viewW=zoomed, viewH=zoomed*0.56;
     const sc=Math.max(VW/viewW, VH/viewH);
     const visW=VW/sc, visH=VH/sc;
-    const aim=me.aim||0;
-    const look=Math.min(visW,visH)*0.28;
-    const lookUp=visH*0.18;
-    const cx=clamp(me.x+Math.cos(aim)*look, visW/2, Math.max(visW/2, WW-visW/2));
-    const cy=clamp(me.y+Math.sin(aim)*look-lookUp, visH/2, Math.max(visH/2, WH-visH/2));
+    const lookUp=visH*0.24;
+    const cx=clamp(me.x, visW/2, Math.max(visW/2, WW-visW/2));
+    const cy=clamp(me.y-lookUp, visH/2, Math.max(visH/2, WH-visH/2));
     return {sc, ox:VW/2-cx*sc, oy:VH/2-cy*sc};
   }
   function wx(x){ const c=cam(); return c.ox+x*c.sc; }
