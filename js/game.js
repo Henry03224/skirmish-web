@@ -132,7 +132,7 @@
     return grounded;
   }
   function screenToWorld(sx,sy){ const c=cam(); return {x:(sx-c.ox)/c.sc, y:(sy-c.oy)/c.sc}; }
-  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-(p.y-3),w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
+  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.34)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.28){ const tgt=Math.atan2(sticks.r.dy,sticks.r.dx); let d=tgt-(p.aim||0); while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; p.aim=(p.aim||0)+d*0.16; } else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-(p.y-3),w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
   function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-(p.y-3),t.x-p.x); }
   function fire(p){
     const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0) return;
@@ -310,10 +310,14 @@
       const r=el.getBoundingClientRect();
       const dx=(ev.clientX-(r.left+r.width/2))/(r.width/2);
       const dy=(ev.clientY-(r.top+r.height/2))/(r.height/2);
-      sticks[side].dx=clamp(dx,-1,1);
-      sticks[side].dy=clamp(dy,-1,1);
+      const mag=Math.hypot(dx,dy);
+      const dead=side==="r"?0.18:0.12;
+      const nx=mag>dead?dx:0, ny=mag>dead?dy:0;
+      sticks[side].dx=clamp(nx,-1,1);
+      sticks[side].dy=clamp(ny,-1,1);
       sticks[side].on=1;
-      el.querySelector("i").style.transform=`translate(${sticks[side].dx*28}px,${sticks[side].dy*28}px)`;
+      const travel=el.offsetWidth*0.28;
+      el.querySelector("i").style.transform=`translate(${sticks[side].dx*travel}px,${sticks[side].dy*travel}px)`;
     };
     const up=(ev)=>{
       if(ev && pid!=null && ev.pointerId!==pid) return;
