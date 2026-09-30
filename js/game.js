@@ -427,7 +427,7 @@
 
   const lostEl=document.getElementById("lost");
   function connectionLost(){
-    if(mode==="menu") return;
+    if(mode!=="play") return;
     mode="menu";
     if(lostEl) lostEl.classList.remove("hidden");
     if(menu) menu.classList.add("hidden");
@@ -556,7 +556,6 @@
     lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
     showLobby("Room "+(slot+1)+" — waiting "+MAXP+" max");
     peer.on("open",()=>renderLobby());
-    peer.on("disconnected",()=>connectionLost());
     peer.on("connection",attachHost);
     peer.on("error",()=>{ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); });
   }
@@ -570,7 +569,6 @@
     peer.on("open",()=>{
       const conn=peer.connect(liveId(slot),{reliable:true});
       net.hostConn=conn;
-      bindLostWatch(conn);
       conn.on("open",()=>{
         opened=true; clearTimeout(fail);
         conn.send({t:"hello",id:my,name,gun:selectedGun});
@@ -586,6 +584,7 @@
           hideLobby();
           if(msg.snap) applySnap(msg.snap);
           mode="play"; menu.classList.add("hidden"); goFs();
+          bindLostWatch(conn);
           if(window.SFX){ SFX.boot(); SFX.start(); }
         }
       });
