@@ -424,6 +424,24 @@
     }
   }
   function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=a[(Math.random()*a.length)|0]; return s; }
+
+  const lostEl=document.getElementById("lost");
+  function connectionLost(){
+    if(mode==="menu") return;
+    mode="menu";
+    if(lostEl) lostEl.classList.remove("hidden");
+    if(menu) menu.classList.add("hidden");
+    if(lobbyEl) lobbyEl.classList.add("hidden");
+    if(end) end.classList.add("hidden");
+    try{ if(net&&net.peer) net.peer.destroy(); }catch(e){}
+    net=null; lobbyRoster=[]; counting=false;
+  }
+  function bindLostWatch(conn){
+    if(!conn) return;
+    conn.on("close",()=>connectionLost());
+    conn.on("disconnected",()=>connectionLost());
+    conn.on("error",()=>connectionLost());
+  }
   const lobbyEl=document.getElementById("lobby");
   const lobbyCodeEl=document.getElementById("lobbyCode");
   const lobbyStatusEl=document.getElementById("lobbyStatus");
@@ -510,7 +528,7 @@
   }
   function attachHost(conn){
     if(!net.conns.includes(conn)) net.conns.push(conn);
-    conn.on("close",()=>{ if(conn.pid) dropPlayer(conn.pid); net.conns=net.conns.filter(c=>c!==conn); });
+    conn.on("close",()=>{ if(conn.pid) dropPlayer(conn.pid); net.conns=net.conns.filter(c=>c!==conn); if(mode==="play" && players.filter(p=>p.kind==="human"&&p.id!==youId).length===0) connectionLost(); });
     conn.on("data",msg=>{
       if(msg.t==="leave"){ dropPlayer(msg.id); return; }
       if(msg.t==="hello"){
@@ -538,6 +556,7 @@
     lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
     showLobby("Room "+(slot+1)+" — waiting "+MAXP+" max");
     peer.on("open",()=>renderLobby());
+    peer.on("disconnected",()=>connectionLost());
     peer.on("connection",attachHost);
     peer.on("error",()=>{ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); });
   }
@@ -551,6 +570,7 @@
     peer.on("open",()=>{
       const conn=peer.connect(liveId(slot),{reliable:true});
       net.hostConn=conn;
+      bindLostWatch(conn);
       conn.on("open",()=>{
         opened=true; clearTimeout(fail);
         conn.send({t:"hello",id:my,name,gun:selectedGun});
@@ -634,6 +654,7 @@
     el.addEventListener("pointercancel",up);
   }
   bindStick(document.getElementById("stickL"),"l"); bindStick(document.getElementById("stickR"),"r");
+  window.addEventListener("offline",()=>connectionLost());
   window.addEventListener("pointerup",()=>{ sticks.l.on=0; sticks.l.dx=0; sticks.l.dy=0; sticks.r.on=0; });
   window.addEventListener("keydown",e=>{ keys[e.key.toLowerCase()]=true; }); window.addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; });
   canvas.addEventListener("mousemove",e=>{
@@ -648,7 +669,7 @@
   });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
-  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnJoin=document.getElementById("btnJoin"); if(btnJoin) btnJoin.onclick=joinOnline; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby; const btnReady=document.getElementById("btnReady"); if(btnReady) btnReady.onclick=iAmReady;
+  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnJoin=document.getElementById("btnJoin"); if(btnJoin) btnJoin.onclick=joinOnline; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby; const btnReady=document.getElementById("btnReady"); if(btnReady) btnReady.onclick=iAmReady; const btnLost=document.getElementById("btnLost"); if(btnLost) btnLost.onclick=()=>{ if(lostEl) lostEl.classList.add("hidden"); menu.classList.remove("hidden"); };
   document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
   const muteBtn=document.getElementById("btnMute");
   if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
