@@ -45,7 +45,7 @@
   const mouse = {sx:0,sy:0,on:0};
   let mode="menu", localTwo=false, net=null, youId="p1";
   let players=[], bullets=[], nades=[], pickups=[], particles=[], flashes=[];
-  let startAt=0, winner=null, tick=0, camY=540;
+  let startAt=0, winner=null, tick=0, camPos={x:960,y:540}, camCache={sc:1,ox:0,oy:0};
   function uid(){ return Math.random().toString(36).slice(2,8); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -53,22 +53,23 @@
   function fit(){ const dpr=Math.min(2,window.devicePixelRatio||1); const w=window.innerWidth,h=window.innerHeight; canvas.style.width=w+"px"; canvas.style.height=h+"px"; canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); VW=w; VH=h; }
   window.addEventListener("resize", fit); window.addEventListener("orientationchange", ()=>setTimeout(fit,200)); fit();
   function followTarget(){ return players.find(p=>p.id===youId) || players.find(p=>p.kind==="human") || {x:WW/2,y:WH/2,weapon:"pistol"}; }
-  function cam(){
+  function updateCam(){
     const me=followTarget();
-    const zoomed = me.weapon==="sniper" ? 640 : 480;
-    const viewW=zoomed, viewH=zoomed*0.56;
+    const zoomed = me.weapon==="sniper" ? 620 : 500;
+    const viewW=zoomed, viewH=zoomed*0.58;
     const sc=Math.max(VW/viewW, VH/viewH);
     const visW=VW/sc, visH=VH/sc;
     const aim=me.aim||0;
-    const vert=Math.sin(aim)*visH*0.34;
-    const cx=clamp(me.x, visW/2, Math.max(visW/2, WW-visW/2));
-    const ty=clamp(me.y+vert, visH/2, Math.max(visH/2, WH-visH/2));
-    camY += (ty-camY)*0.08;
-    const cy=camY;
-    return {sc, ox:VW/2-cx*sc, oy:VH/2-cy*sc};
+    const look=Math.sin(aim)*visH*0.30;
+    const tx=clamp(me.x, visW/2, Math.max(visW/2, WW-visW/2));
+    const ty=clamp(me.y+look, visH/2, Math.max(visH/2, WH-visH/2));
+    camPos.x += (tx-camPos.x)*0.14;
+    camPos.y += (ty-camPos.y)*0.07;
+    camCache={sc, ox:VW/2-camPos.x*sc, oy:VH/2-camPos.y*sc};
   }
-  function wx(x){ const c=cam(); return c.ox+x*c.sc; }
-  function wy(y){ const c=cam(); return c.oy+y*c.sc; }
+  function cam(){ return camCache; }
+  function wx(x){ const c=camCache; return c.ox+x*c.sc; }
+  function wy(y){ const c=camCache; return c.oy+y*c.sc; }
   function onScreen(x,y,pad){ pad=pad||80; const sx=wx(x),sy=wy(y); return sx>-pad&&sy>-pad&&sx<VW+pad&&sy<VH+pad; }
   function useMap(id){ mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
   function hearDist(x,y){ const lis=players.find(o=>o.id===youId); return lis?Math.hypot(x-lis.x,y-lis.y):0; }
