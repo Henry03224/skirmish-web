@@ -174,23 +174,32 @@
   function wx(x){ return x*(VW/1280); }
   function wy(y){ return y*(VH/720); }
   function drawAnime(p){
-    const x=wx(p.x), y=wy(p.y), s=Math.min(VW/1280,VH/720)*1.15, sk=p.skin;
-    ctx.save(); ctx.translate(x,y); ctx.scale(p.dir||1,1);
-    ctx.fillStyle=sk.outfit; ctx.beginPath(); ctx.ellipse(0,8*s,9*s,12*s,0,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle="#0b0b0b"; ctx.lineWidth=2*s;
-    ctx.beginPath(); ctx.moveTo(-7*s,18*s); ctx.lineTo(-2*s,10*s); ctx.moveTo(7*s,18*s); ctx.lineTo(2*s,10*s); ctx.stroke();
-    ctx.fillStyle="#f6d7c3"; ctx.beginPath(); ctx.arc(0,-10*s,9*s,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=sk.hair; ctx.beginPath(); ctx.ellipse(0,-16*s,11*s,8*s,0,Math.PI,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-10*s,-12*s); ctx.quadraticCurveTo(-14*s,-2*s,-6*s,2*s); ctx.lineTo(-4*s,-8*s); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.ellipse(-3.2*s,-10*s,2.6*s,3.2*s,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(3.2*s,-10*s,2.6*s,3.2*s,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=sk.eye; ctx.beginPath(); ctx.arc(-3*s,-10*s,1.3*s,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(3.4*s,-10*s,1.3*s,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=sk.accent; ctx.fillRect(8*s,-2*s,10*s,3*s);
+    const x=wx(p.x), y=wy(p.y), s=Math.min(VW/1280,VH/720)*1.25, sk=p.skin;
+    const aim = p.aim || (p.dir>0?0:Math.PI);
+    ctx.save(); ctx.translate(x,y); ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.fillStyle="#0005"; ctx.beginPath(); ctx.ellipse(0,20*s,8*s,2.2*s,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#2a3238"; ctx.fillRect(-11*s,2*s,5*s,10*s);
+    ctx.fillStyle="#5a6570"; ctx.fillRect(-10.2*s,3*s,3.4*s,4*s);
+    ctx.strokeStyle="#1c1c1c"; ctx.lineWidth=2.4*s;
+    const step = Math.sin((p.x+p.y)*0.25)*3*s;
+    ctx.beginPath(); ctx.moveTo(-2*s,8*s); ctx.lineTo(-5*s-step,19*s); ctx.moveTo(2*s,8*s); ctx.lineTo(5*s+step,19*s); ctx.stroke();
+    ctx.fillStyle="#222"; ctx.fillRect(-7*s-step,18*s,5*s,2.4*s); ctx.fillRect(3*s+step,18*s,5*s,2.4*s);
+    ctx.fillStyle=sk.outfit; ctx.fillRect(-5.5*s,-1*s,11*s,12*s);
+    ctx.fillStyle="#0004"; ctx.fillRect(-5.5*s,4*s,11*s,2*s);
+    ctx.save(); ctx.rotate(aim);
+    ctx.strokeStyle="#1c1c1c"; ctx.lineWidth=2.2*s;
+    ctx.beginPath(); ctx.moveTo(0,2*s); ctx.lineTo(10*s,2*s); ctx.stroke();
+    ctx.fillStyle="#2b2b2b"; ctx.fillRect(8*s,0.4*s,16*s,2.4*s); ctx.fillRect(21*s,-0.6*s,3.2*s,2.2*s);
+    ctx.fillStyle="#555"; ctx.fillRect(12*s,2.4*s,3*s,3*s);
     ctx.restore();
-    ctx.fillStyle="#0008"; ctx.fillRect(x-18,y-36*s,36,4);
-    ctx.fillStyle=p.hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(x-18,y-36*s,36*(p.hp/100),4);
-    ctx.fillStyle="#fff"; ctx.font=(11*s)+"px sans-serif"; ctx.textAlign="center"; ctx.fillText(p.name,x,y-42*s);
+    ctx.fillStyle="#e0b08a"; ctx.beginPath(); ctx.arc(0,-9*s,6.2*s,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=1.2*s; ctx.stroke();
+    ctx.fillStyle=sk.hair; ctx.beginPath(); ctx.arc(0,-11.2*s,6.2*s,Math.PI,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc((p.dir>=0?1.8:-1.8)*s,-9.2*s,1.05*s,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle="#0008"; ctx.fillRect(x-16,y-34*s,32,3.5);
+    ctx.fillStyle=p.hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(x-16,y-34*s,32*(p.hp/100),3.5);
+    ctx.fillStyle="#fff"; ctx.font=(10*s)+"px sans-serif"; ctx.textAlign="center"; ctx.fillText(p.name,x,y-40*s);
   }
   function draw(){
     ctx.clearRect(0,0,VW,VH);
