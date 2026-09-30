@@ -358,26 +358,36 @@
   function slimP(p){
     return {id:p.id,name:p.name,kind:p.kind,skinI:p.skinI,x:p.x,y:p.y,vx:p.vx,vy:p.vy,dir:p.dir,aim:p.aim,walk:p.walk,hp:p.hp,maxHp:p.maxHp,jet:p.jet,weapon:p.weapon,ammo:p.ammo,nades:p.nades,kills:p.kills,deaths:p.deaths,alive:p.alive,respawn:p.respawn,fireCd:p.fireCd,nadeCd:p.nadeCd,input:p.input,grounded:p.grounded};
   }
-  function serialize(){ return {startAt,players:players.map(slimP),bullets,nades,pickups,flashes,winner,mode,mapId}; }
+  function serialize(){ return {elapsed:performance.now()-startAt,players:players.map(slimP),bullets,nades,pickups,flashes,winner,mode,mapId}; }
   function applySnap(s){
     const keep=players.find(p=>p.id===youId);
     const saved=keep?{x:keep.x,y:keep.y,vx:keep.vx,vy:keep.vy,input:keep.input,aim:keep.aim,walk:keep.walk}:null;
-    startAt=s.startAt; const incoming=s.players||[];
+    if(s.elapsed!=null) startAt=performance.now()-s.elapsed; else if(s.startAt) startAt=s.startAt; const incoming=s.players||[];
     bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner;
     if(s.mapId) useMap(s.mapId);
     const byId={};
     incoming.forEach((np,i)=>{
       if(np.skinI==null) np.skinI=i%SKINS.length; np.skin=SKINS[np.skinI];
       if(!np.input) np.input={l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0};
-      np.tx=np.x; np.ty=np.y;
+      const sx=np.x, sy=np.y;
+      np.tx=sx; np.ty=sy;
       const old=players.find(p=>p.id===np.id);
-      if(old&&np.id!==youId){ np.x=old.x; np.y=old.y; }
+      if(old){
+        const err=Math.hypot(old.x-sx, old.y-sy);
+        if(np.id===youId){
+          if(err>40){ np.x=sx; np.y=sy; }
+          else { np.x=old.x+(sx-old.x)*0.35; np.y=old.y+(sy-old.y)*0.35; np.vx=sx!==old.x?np.vx:old.vx; }
+        } else {
+          if(err>64){ np.x=sx; np.y=sy; }
+          else { np.x=old.x; np.y=old.y; }
+        }
+      }
       byId[np.id]=np;
     });
     if(saved && byId[youId]){
       const me=byId[youId];
-      me.x=saved.x; me.y=saved.y; me.vx=saved.vx; me.vy=saved.vy;
-      me.input=saved.input||me.input; me.aim=saved.aim; me.walk=saved.walk;
+      me.input=saved.input||me.input;
+      if(saved.aim!=null) me.aim=saved.aim;
     }
     players=incoming;
     if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); }
@@ -401,7 +411,7 @@
         stepPlayer(me);
         for(const p of players){
           if(p.id===youId||!p.alive) continue;
-          if(p.tx!=null){ p.x+=(p.tx-p.x)*0.28; p.y+=(p.ty-p.y)*0.28; }
+          if(p.tx!=null){ p.x+=(p.tx-p.x)*0.45; p.y+=(p.ty-p.y)*0.45; }
         }
         if(now-inT>33){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
         if(now-pingAt>1000){ pingAt=now; try{ net.hostConn.send({t:"ping",t0:now}); }catch(e){} }
