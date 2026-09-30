@@ -175,7 +175,7 @@
       p.vy-=JET;
       if(p.vy>1.6) p.vy*=0.88;
       p.jet-=0.14;
-      particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
+      if(tick%3===0 && particles.length<36) particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:10,c:"flame"});
       if(window.SFX && p.id===youId) SFX.jet();
     } else p.jet=Math.min(100,p.jet+0.32);
     p.vy=clamp(p.vy+GRAV,-MAX_VY,MAX_VY); p.x+=p.vx; p.y+=p.vy; p.x=clamp(p.x,16,WW-16);
@@ -309,7 +309,10 @@
     ctx.fillStyle="#9c6"; for(const n of nades){ if(!onScreen(n.x,n.y,10)) continue; ctx.beginPath(); ctx.arc(wx(n.x),wy(n.y),5,0,Math.PI*2); ctx.fill(); }
     const me=players.find(p=>p.id===youId)||players[0]; if(me) drawHud(me);
   }
-  function serialize(){ return {startAt,players,bullets,nades,pickups,flashes,winner,mode,mapId}; }
+  function slimP(p){
+    return {id:p.id,name:p.name,kind:p.kind,skinI:p.skinI,x:p.x,y:p.y,vx:p.vx,vy:p.vy,dir:p.dir,aim:p.aim,walk:p.walk,hp:p.hp,maxHp:p.maxHp,jet:p.jet,weapon:p.weapon,ammo:p.ammo,nades:p.nades,kills:p.kills,deaths:p.deaths,alive:p.alive,respawn:p.respawn,fireCd:p.fireCd,nadeCd:p.nadeCd,input:p.input,grounded:p.grounded};
+  }
+  function serialize(){ return {startAt,players:players.map(slimP),bullets,nades,pickups,flashes,winner,mode,mapId}; }
   function applySnap(s){
     const keep=players.find(p=>p.id===youId);
     const savedIn=keep&&keep.input, savedAim=keep&&keep.aim;
@@ -323,7 +326,7 @@
     if(me){ if(savedIn) me.input=savedIn; if(savedAim!=null) me.aim=savedAim; }
     if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); }
   }
-  let snapT=0;
+  let snapT=0, inT=0;
   function loop(){
     requestAnimationFrame(loop);
     const me=players.find(p=>p.id===youId);
@@ -331,14 +334,15 @@
       if(me){ if(!me.input) me.input={l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0}; readHuman(me,1); }
       if(localTwo){ const p2=players.find(p=>p.id==="p2"); if(p2) readHuman(p2,2); }
       const host=!net||net.role==="host";
+      const now=performance.now();
       if(host){
         stepWorld();
-        if(net&&net.conns&&net.conns.length){
-          const now=performance.now();
-          if(now-snapT>80){ snapT=now; const snap=serialize(); net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} }); }
+        if(net&&net.conns&&net.conns.length && now-snapT>120){
+          snapT=now; const snap=serialize();
+          net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} });
         }
       } else if(net&&net.hostConn&&me){
-        try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){}
+        if(now-inT>50){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
       }
       draw();
     }
