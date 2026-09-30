@@ -350,9 +350,16 @@
   function liveId(n){ return "swhenq"+n; }
   function renderLobby(){
     if(!lobbyListEl) return;
-    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>P"+(i+1)+" — "+p.name+(p.ready?"  ✓ READY":"  …")+"</li>").join("")||"<li>Finding room...</li>";
-    if(lobbyCodeEl) lobbyCodeEl.textContent="ROOM "+((net&&net.slot!=null)?(net.slot+1):"—")+"  "+lobbyRoster.length+"/"+MAXP;
-    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for players...":"Tap READY when set";
+    const skins=["assets/soldier_green.svg","assets/soldier_blue.svg","assets/soldier_pink.svg","assets/soldier_gold.svg","assets/soldier_red.svg","assets/soldier_lime.svg"];
+    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>{
+      const me=p.id===youId?" me":"";
+      const dot=p.ready?"on":(p.id===youId?"wait":"");
+      const rank=(p.name||"P").length*3%80;
+      const av=skins[i%skins.length];
+      return "<li class=\""+me+"\"><span class=\"rank\">"+rank+"</span><i class=\"dot "+dot+"\"></i><img class=\"av\" src=\""+av+"\" alt=\"\"><span>"+p.name+"</span></li>";
+    }).join("")||"<li>Finding soldiers...</li>";
+    if(lobbyCodeEl) lobbyCodeEl.textContent="ROOM "+((net&&net.slot!=null)?(net.slot+1):"1")+"  "+lobbyRoster.length+"/"+MAXP;
+    if(lobbyStatusEl) lobbyStatusEl.innerHTML=lobbyRoster.length<2?"SELECTING A SERVER<br>ACQUIRING A LOBBY":"LOBBY READY<br>TAP READY";
   }
   function showLobby(msg){
     menu.classList.add("hidden"); if(end) end.classList.add("hidden");
@@ -397,8 +404,8 @@
   }
   function showCount(n){
     const el=document.getElementById("countDown");
-    if(el){ el.classList.remove("hidden"); el.textContent=n<=0?"GO":String(n); }
-    if(lobbyStatusEl) lobbyStatusEl.textContent=n<=0?"Starting...":"Starting in "+n;
+    if(el){ el.classList.remove("hidden"); el.textContent=n<=0?"GAME STARTS IN: GO":"GAME STARTS IN: "+n; }
+    if(lobbyStatusEl) lobbyStatusEl.innerHTML="MATCH FOUND<br>GET READY";
   }
   function iAmReady(){
     if(net&&net.role==="host") markReady(youId);
