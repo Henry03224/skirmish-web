@@ -415,8 +415,11 @@
   }
   function showCount(n){
     const el=document.getElementById("countDown");
-    if(el){ el.classList.remove("hidden"); el.textContent=n<=0?"GAME STARTS IN: GO":"GAME STARTS IN: "+n; }
-    if(lobbyStatusEl) lobbyStatusEl.innerHTML="MATCH FOUND<br>GET READY";
+    if(!el) return;
+    if(!counting && !(net&&net.role!=="host")) { el.classList.add("hidden"); return; }
+    if(!allReady() && net&&net.role==="host"){ el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    el.textContent=n<=0?"GAME STARTS IN: GO":"GAME STARTS IN: "+n;
   }
   function iAmReady(){
     if(net&&net.role==="host") markReady(youId);
@@ -471,7 +474,7 @@
       conn.on("data",msg=>{
         if(msg.t==="full"){ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); return; }
         if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; counting=false; renderLobby(); }
-        if(msg.t==="count") showCount(msg.n);
+        if(msg.t==="count"){ counting=true; showCount(msg.n); }
         if(msg.t==="start"||msg.t==="snap"){
           hideLobby();
           if(msg.snap) applySnap(msg.snap);
