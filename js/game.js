@@ -45,7 +45,7 @@
   const mouse = {sx:0,sy:0,on:0};
   let mode="menu", localTwo=false, net=null, youId="p1";
   let players=[], bullets=[], nades=[], pickups=[], particles=[], flashes=[];
-  let startAt=0, winner=null, tick=0;
+  let startAt=0, winner=null, tick=0, camY=540;
   function uid(){ return Math.random().toString(36).slice(2,8); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -62,7 +62,9 @@
     const aim=me.aim||0;
     const vert=Math.sin(aim)*visH*0.34;
     const cx=clamp(me.x, visW/2, Math.max(visW/2, WW-visW/2));
-    const cy=clamp(me.y+vert, visH/2, Math.max(visH/2, WH-visH/2));
+    const ty=clamp(me.y+vert, visH/2, Math.max(visH/2, WH-visH/2));
+    camY += (ty-camY)*0.08;
+    const cy=camY;
     return {sc, ox:VW/2-cx*sc, oy:VH/2-cy*sc};
   }
   function wx(x){ const c=cam(); return c.ox+x*c.sc; }
