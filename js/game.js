@@ -363,7 +363,10 @@
     const keep=players.find(p=>p.id===youId);
     const saved=keep?{x:keep.x,y:keep.y,vx:keep.vx,vy:keep.vy,input:keep.input,aim:keep.aim,walk:keep.walk}:null;
     if(s.elapsed!=null) startAt=performance.now()-s.elapsed; else if(s.startAt) startAt=s.startAt; const incoming=s.players||[];
-    bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner;
+    const mineB=(bullets||[]).filter(b=>b.owner===youId);
+    const otherB=(s.bullets||[]).filter(b=>b.owner!==youId);
+    bullets=mineB.concat(otherB);
+    nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner;
     if(s.mapId) useMap(s.mapId);
     const byId={};
     incoming.forEach((np,i)=>{
@@ -409,6 +412,8 @@
           p.x+=p.vx||0; p.y+=p.vy||0;
           if(p.tx!=null){ p.x+=(p.tx-p.x)*0.55; p.y+=(p.ty-p.y)*0.55; }
         }
+        for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; b.life--; }
+        bullets=bullets.filter(b=>b.life>0);
         if(now-inT>16){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
         if(now-pingAt>1000){ pingAt=now; try{ net.hostConn.send({t:"ping",t0:now}); }catch(e){} }
       }
