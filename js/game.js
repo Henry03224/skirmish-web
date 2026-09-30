@@ -287,6 +287,28 @@
       ctx.fillText(pingMs?("PING "+pingMs+" ms"):"PING --", VW-12, 80);
     }
   }
+
+  function drawEnemyArrows(me){
+    for(const p of players){
+      if(!p.alive||p.id===me.id) continue;
+      const sx=wx(p.x), sy=wy(p.y);
+      if(sx>28&&sx<VW-28&&sy>28&&sy<VH-28) continue;
+      const ang=Math.atan2(sy-VH/2,sx-VW/2);
+      const pad=26;
+      const dx=Math.cos(ang), dy=Math.sin(ang);
+      let t=1e9;
+      if(dx>0.001) t=Math.min(t,(VW-pad-VW/2)/dx);
+      if(dx<-0.001) t=Math.min(t,(pad-VW/2)/dx);
+      if(dy>0.001) t=Math.min(t,(VH-pad-VH/2)/dy);
+      if(dy<-0.001) t=Math.min(t,(pad-VH/2)/dy);
+      const ax=VW/2+dx*t, ay=VH/2+dy*t;
+      ctx.save();
+      ctx.translate(ax,ay); ctx.rotate(ang);
+      ctx.fillStyle=p.skinI===0?"#3dff8a":"#ff4d4d";
+      ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-8,-8); ctx.lineTo(-8,8); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
   function draw(){
     updateCam();
     ctx.clearRect(0,0,VW,VH); ctx.fillStyle="#050608"; ctx.fillRect(0,0,VW,VH); const c=cam();
@@ -318,7 +340,7 @@
       ctx.drawImage(fxImg.muzzle, 0, -16*a, 48*a, 32*a); ctx.globalAlpha=1; ctx.restore();
     }
     ctx.fillStyle="#9c6"; for(const n of nades){ if(!onScreen(n.x,n.y,10)) continue; ctx.beginPath(); ctx.arc(wx(n.x),wy(n.y),5,0,Math.PI*2); ctx.fill(); }
-    const me=players.find(p=>p.id===youId)||players[0]; if(me) drawHud(me);
+    const me=players.find(p=>p.id===youId)||players[0]; if(me){ drawEnemyArrows(me); drawHud(me); }
   }
   function slimP(p){
     return {id:p.id,name:p.name,kind:p.kind,skinI:p.skinI,x:p.x,y:p.y,vx:p.vx,vy:p.vy,dir:p.dir,aim:p.aim,walk:p.walk,hp:p.hp,maxHp:p.maxHp,jet:p.jet,weapon:p.weapon,ammo:p.ammo,nades:p.nades,kills:p.kills,deaths:p.deaths,alive:p.alive,respawn:p.respawn,fireCd:p.fireCd,nadeCd:p.nadeCd,input:p.input,grounded:p.grounded};
