@@ -7,7 +7,7 @@
   const roomInput = document.getElementById("roomInput");
   const WW = 1920, WH = 1080;
   let VW = 1280, VH = 720;
-  const GRAV = 0.26, JET = 0.34, MOVE = 0.16, FRIC = 0.88, MAX_VX = 2.8, MAX_VY = 5.4;
+  const GRAV = 0.12, JET = 0.28, MOVE = 0.16, FRIC = 0.88, MAX_VX = 2.8, MAX_VY = 3.6;
   const MATCH_MS = 120000;
   const GUNS = ["pistol","smg","shot","sniper"];
   const GUN = {
@@ -88,7 +88,30 @@
   }
   function startSolo(){ const name=(nameInput.value||"PLAYER").toUpperCase(); const list=[makePlayer("p1",name,0,"human",selectedGun)]; const bots=["smg","shot","sniper","pistol"]; for(let i=0;i<4;i++) list.push(makePlayer("bot"+i,"BOT "+(i+1),i+1,"bot",bots[i])); youId="p1"; localTwo=false; net=null; resetWorld(list); }
   function startLocal(){ resetWorld([makePlayer("p1",(nameInput.value||"P1").toUpperCase(),0,"human",selectedGun), makePlayer("p2","P2",1,"human","smg"), makePlayer("bot0","BOT 1",2,"bot","sniper"), makePlayer("bot1","BOT 2",3,"bot","shot")]); youId="p1"; localTwo=true; net=null; }
-  function inWall(x,y){ for(const w of WALLS){ if(x>=w.x && x<=w.x+w.w && y>=w.y && y<=w.y+w.h) return true; } return false; }
+  function inWall(x,y,pad){
+    pad = pad==null ? 2 : pad;
+    for(const w of WALLS){
+      if(x>=w.x-pad && x<=w.x+w.w+pad && y>=w.y-pad && y<=w.y+w.h+pad) return true;
+    }
+    return false;
+  }
+  function segHitsWall(x0,y0,x1,y1){
+    const n=Math.max(6, Math.ceil(Math.hypot(x1-x0,y1-y0)/2.5));
+    for(let i=1;i<=n;i++){
+      const t=i/n;
+      if(inWall(x0+(x1-x0)*t, y0+(y1-y0)*t, 1)) return true;
+    }
+    return false;
+  }
+  function bulletHitsPlayer(px,py,x0,y0,x1,y1){
+    const r=24;
+    if(Math.hypot(px-x1,py-y1)<r) return true;
+    const vx=x1-x0, vy=y1-y0, l2=vx*vx+vy*vy;
+    if(l2<0.01) return Math.hypot(px-x0,py-y0)<r;
+    let t=((px-x0)*vx+(py-y0)*vy)/l2;
+    t=Math.max(0,Math.min(1,t));
+    return Math.hypot(px-(x0+vx*t), py-(y0+vy*t))<r;
+  }
   function platHit(p){
     let grounded=false;
     for(const w of WALLS){
@@ -113,10 +136,23 @@
     const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0) return;
     p.fireCd=g.cd; if(window.SFX && onScreen(p.x,p.y,12)) SFX.shoot(p.weapon, hearDist(p.x,p.y));
     const muz=muzzleOf(p); const base=muz.a;
-    flashes.push({x:muz.x,y:muz.y,a:base,life:8,max:8});
+    let mx=muz.x, my=muz.y;
+    if(inWall(mx,my,0) || segHitsWall(p.x, p.y-3, mx, my)){
+      mx=p.x+Math.cos(base)*10;
+      my=p.y-3+Math.sin(base)*10;
+    }
+    flashes.push({x:mx,y:my,a:base,life:8,max:8});
+    let close=false;
+    for(const o of players){
+      if(!o.alive||o.id===p.id) continue;
+      if(bulletHitsPlayer(o.x,o.y,p.x,p.y-3,mx,my) || Math.hypot(o.x-p.x,o.y-p.y)<28){
+        hurt(o,g.dmg,p.id); close=true;
+      }
+    }
+    if(close) return;
     for(let i=0;i<g.n;i++){
       const a=base+(Math.random()-0.5)*g.spread;
-      bullets.push({x:muz.x,y:muz.y,vx:Math.cos(a)*g.spd,vy:Math.sin(a)*g.spd,a,owner:p.id,dmg:g.dmg,life:p.weapon==="sniper"?78:56,sniper:p.weapon==="sniper"});
+      bullets.push({x:mx,y:my,vx:Math.cos(a)*g.spd,vy:Math.sin(a)*g.spd,a,owner:p.id,dmg:g.dmg,life:p.weapon==="sniper"?78:56,sniper:p.weapon==="sniper"});
     }
   }
   function throwNade(p){ if(p.nadeCd>0||p.nades<=0) return; p.nades--; p.nadeCd=56; const a=p.aim||(p.dir>0?-0.4:Math.PI+0.4); nades.push({x:p.x,y:p.y,vx:Math.cos(a)*5.5,vy:Math.sin(a)*5.5-2.2,owner:p.id,fuse:78}); }
@@ -150,7 +186,15 @@
     const left=MATCH_MS-(performance.now()-startAt);
     if(left<=0&&!winner){ winner=[...players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)[0]; mode="end"; document.getElementById("endTitle").textContent=winner.name+" wins"; document.getElementById("endBody").textContent=players.map(p=>p.name+" "+p.kills+"K/"+p.deaths+"D").join(" · "); end.classList.remove("hidden"); if(window.SFX) SFX.win(); return; }
     for(const p of players){ if(p.kind==="bot") botThink(p); stepPlayer(p); }
-    for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; b.life--; if(inWall(b.x,b.y)){ b.life=0; continue; } for(const p of players){ if(!p.alive||p.id===b.owner) continue; if(Math.hypot(p.x-b.x,p.y-b.y)<18){ hurt(p,b.dmg,b.owner); b.life=0; } } }
+    for(const b of bullets){
+      const ox=b.x, oy=b.y;
+      b.x+=b.vx; b.y+=b.vy; b.life--;
+      if(segHitsWall(ox,oy,b.x,b.y) || inWall(b.x,b.y,1)){ b.life=0; continue; }
+      for(const p of players){
+        if(!p.alive||p.id===b.owner) continue;
+        if(bulletHitsPlayer(p.x,p.y,ox,oy,b.x,b.y)){ hurt(p,b.dmg,b.owner); b.life=0; break; }
+      }
+    }
     bullets=bullets.filter(b=>b.life>0);
     for(const n of nades){ n.vy+=0.18; n.x+=n.vx; n.y+=n.vy; if(inWall(n.x,n.y)){ n.vx*=-0.3; n.vy=0; n.y-=2; } n.fuse--; if(n.fuse<=0) explode(n.x,n.y,n.owner,100,55); }
     nades=nades.filter(n=>n.fuse>0);
