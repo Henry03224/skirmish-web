@@ -372,15 +372,10 @@
       const sx=np.x, sy=np.y;
       np.tx=sx; np.ty=sy;
       const old=players.find(p=>p.id===np.id);
-      if(old){
+      if(old && np.id===youId){
         const err=Math.hypot(old.x-sx, old.y-sy);
-        if(np.id===youId){
-          if(err>40){ np.x=sx; np.y=sy; }
-          else { np.x=old.x+(sx-old.x)*0.35; np.y=old.y+(sy-old.y)*0.35; np.vx=sx!==old.x?np.vx:old.vx; }
-        } else {
-          if(err>64){ np.x=sx; np.y=sy; }
-          else { np.x=old.x; np.y=old.y; }
-        }
+        if(err>90){ np.x=sx; np.y=sy; np.vx=np.vx; }
+        else { np.x=old.x; np.y=old.y; np.vx=old.vx; np.vy=old.vy; }
       }
       byId[np.id]=np;
     });
@@ -403,7 +398,7 @@
       const now=performance.now();
       if(host){
         stepWorld();
-        if(net&&net.conns&&net.conns.length && now-snapT>55){
+        if(net&&net.conns&&net.conns.length && now-snapT>40){
           snapT=now; const snap=serialize();
           net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} });
         }
@@ -411,9 +406,10 @@
         stepPlayer(me);
         for(const p of players){
           if(p.id===youId||!p.alive) continue;
-          if(p.tx!=null){ p.x+=(p.tx-p.x)*0.45; p.y+=(p.ty-p.y)*0.45; }
+          p.x+=p.vx||0; p.y+=p.vy||0;
+          if(p.tx!=null){ p.x+=(p.tx-p.x)*0.55; p.y+=(p.ty-p.y)*0.55; }
         }
-        if(now-inT>33){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
+        if(now-inT>16){ inT=now; try{ net.hostConn.send({t:"in",id:youId,input:me.input,aim:me.aim}); }catch(e){} }
         if(now-pingAt>1000){ pingAt=now; try{ net.hostConn.send({t:"ping",t0:now}); }catch(e){} }
       }
       if(net&&net.role==="host"&&net.conns&&net.conns.length&&now-pingAt>1000){
