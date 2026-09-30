@@ -38,15 +38,28 @@
             <button type="button" class="mapcard" data-gun="sniper">Sniper</button>
           </div>
           <div class="row"><button id="btnSolo">Play vs Bots</button></div>
+          <div class="row"><button id="btnLocal" class="ghost">2P Same Screen</button></div>
+          <p class="label">Online lobby</p>
           <div class="row">
-            <button id="btnLocal" class="ghost">2P Same Screen</button>
-            <button id="btnHost" class="ghost">Host Room</button>
+            <button id="btnHost">Host Room</button>
           </div>
           <div class="row join">
             <input id="roomInput" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
-            <button id="btnJoin" class="ghost">Join</button>
+            <button id="btnJoin" class="ghost">Join Online</button>
           </div>
-          <p class="hint">Left stick move/jet · right stick aim/fire · camera follows gun.</p>
+          <p class="hint">Host a room, share the code, wait in lobby, then start.</p>
+        </div>
+      </div>
+      <div id="lobby" class="overlay hidden">
+        <div class="panel">
+          <h1>LOBBY</h1>
+          <p id="lobbyCode" class="code">ROOM —</p>
+          <p id="lobbyStatus" class="sub">Waiting for others...</p>
+          <ul id="lobbyList" class="lobby-list"></ul>
+          <div class="row">
+            <button id="btnStart">Start Match</button>
+            <button id="btnLeave" class="ghost">Leave</button>
+          </div>
         </div>
       </div>
       <div id="end" class="overlay hidden">
