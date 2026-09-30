@@ -12,6 +12,7 @@ html, body {
   border:0; border-radius:8px; padding:8px 10px; font-weight:800; font-size:11px;
   background:#7cf0ffcc; color:#042;
 }
+.mute-btn { right:68px; }
 .overlay {
   position:absolute; inset:0; display:grid; place-items:center;
   background:rgba(5,8,12,.82); z-index:5; padding:12px; overflow:auto;
