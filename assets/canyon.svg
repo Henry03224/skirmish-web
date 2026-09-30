@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ec8ff"/><stop offset=".45" stop-color="#7ecfff"/><stop offset="1" stop-color="#f4b36a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <circle cx="1420" cy="160" r="150" fill="#e8f4ff" opacity=".85"/>
+  <circle cx="1420" cy="160" r="118" fill="#cfe6ff" opacity=".5"/>
+  <circle cx="1180" cy="210" r="48" fill="#d7e9ff" opacity=".7"/>
+  <path d="M700 720 L760 430 L820 720 Z" fill="#c47a4a"/>
+  <path d="M820 740 L880 380 L960 740 Z" fill="#b86b3d"/>
+  <path d="M960 760 L1040 360 L1140 760 Z" fill="#a85d32"/>
+  <path d="M1120 780 L1220 420 L1340 780 Z" fill="#c27440"/>
+  <path d="M1280 800 L1380 500 L1500 800 Z" fill="#d0844a"/>
+  <ellipse cx="980" cy="900" rx="520" ry="70" fill="#c9844c" opacity=".35"/>
+  <path d="M0 240 L280 200 L420 280 L520 220 L620 340 L0 520 Z" fill="#c56a32"/>
+  <path d="M0 300 L240 270 L400 340 L0 560 Z" fill="#e08948"/>
+  <path d="M0 380 L300 350 L380 430 L0 640 Z" fill="#f0a05a"/>
+  <path d="M0 620 L420 580 L480 720 L0 820 Z" fill="#d47a3c"/>
+  <path d="M0 780 L500 760 L540 900 L0 980 Z" fill="#e8944e"/>
+  <path d="M1920 260 L1600 220 L1480 320 L1400 260 L1320 380 L1920 560 Z" fill="#c56a32"/>
+  <path d="M1920 340 L1680 310 L1540 400 L1920 600 Z" fill="#e08948"/>
+  <path d="M1920 420 L1620 400 L1500 500 L1920 680 Z" fill="#f0a05a"/>
+  <path d="M1920 640 L1500 600 L1420 740 L1920 840 Z" fill="#d47a3c"/>
+  <path d="M1920 800 L1480 780 L1400 920 L1920 1000 Z" fill="#e8944e"/>
+  <rect x="0" y="980" width="1920" height="100" fill="#d08a48"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#c47a3a"/>
+  <g fill="#3ad0ff">
+    <polygon points="80,620 130,430 180,620"/>
+    <polygon points="150,640 190,500 230,640"/>
+    <polygon points="1700,600 1760,410 1820,600"/>
+    <polygon points="1640,720 1690,560 1740,720"/>
+  </g>
+  <g fill="#7b4dff">
+    <polygon points="40,700 80,560 120,700"/>
+    <polygon points="1780,680 1830,540 1880,680"/>
+  </g>
+  <g fill="#c44ad0">
+    <circle cx="220" cy="480" r="18"/><circle cx="250" cy="500" r="12"/>
+    <circle cx="1680" cy="460" r="16"/><circle cx="1710" cy="480" r="11"/>
+  </g>
+</svg>
