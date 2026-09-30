@@ -550,22 +550,30 @@
       if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p){ p.input=msg.input||p.input; if(msg.aim!=null) p.aim=msg.aim; p.inAt=performance.now(); } }
     });
   }
-  function hostSlot(name, slot){
+  function hostSlot(name, slot, gen){
+    if(gen!=null && gen!==matchGen) return;
+    if(net&&net.role==="host"&&net.peer&&net.slot===slot) return;
     const peer=new Peer(liveId(slot), PEER_CFG);
+    let opened=false;
     net={role:"host",code:"R"+(slot+1),peer,conns:[],slot}; youId="p1"; localTwo=false;
     lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
     showLobby("Room "+(slot+1)+" — waiting "+MAXP+" max");
-    peer.on("open",()=>renderLobby());
+    peer.on("open",()=>{ opened=true; renderLobby(); });
     peer.on("connection",attachHost);
-    peer.on("error",()=>{ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); });
+    peer.on("error",()=>{
+      if(opened || (net&&net.peer===peer && net.role==="host" && lobbyRoster.length>1)) return;
+      try{peer.destroy();}catch(e){}
+      if(gen===matchGen) quickJoin(name, slot+1, gen);
+    });
   }
-  function joinSlot(name, slot, next){
+  function joinSlot(name, slot, next, gen){
+    if(gen!=null && gen!==matchGen) return;
     const my=uid();
     const peer=new Peer(PEER_CFG);
     net={role:"client",code:"R"+(slot+1),peer,hostConn:null,slot}; youId=my; localTwo=false;
     showLobby("Checking room "+(slot+1)+"...");
     let opened=false;
-    const fail=setTimeout(()=>{ if(!opened){ try{peer.destroy();}catch(e){} next(); } }, 2200);
+    const fail=setTimeout(()=>{ if(!opened && gen===matchGen){ try{peer.destroy();}catch(e){} next(); } }, 3500);
     peer.on("open",()=>{
       const conn=peer.connect(liveId(slot),{reliable:true});
       net.hostConn=conn;
@@ -588,17 +596,19 @@
           if(window.SFX){ SFX.boot(); SFX.start(); }
         }
       });
-      conn.on("error",()=>{ clearTimeout(fail); try{peer.destroy();}catch(e){} next(); });
+      conn.on("error",()=>{ if(opened) return; clearTimeout(fail); try{peer.destroy();}catch(e){} if(gen===matchGen) next(); });
     });
-    peer.on("error",()=>{ clearTimeout(fail); try{peer.destroy();}catch(e){} next(); });
+    peer.on("error",()=>{ if(opened) return; clearTimeout(fail); try{peer.destroy();}catch(e){} if(gen===matchGen) next(); });
   }
-  function quickJoin(name, slot){
+  let matchGen=0;
+  function quickJoin(name, slot, gen){
     slot=slot||0;
-    if(slot>=ROOMS){ hostSlot(name, ROOMS-1); return; }
+    gen = gen==null?matchGen:gen;
+    if(slot>=ROOMS){ hostSlot(name, ROOMS-1, gen); return; }
     showLobby("Quick match...");
-    joinSlot(name, slot, ()=>hostSlot(name, slot));
+    joinSlot(name, slot, ()=>hostSlot(name, slot, gen), gen);
   }
-  function tryMerge(){
+  function tryMerge(){ return;
     if(!net || mode==="play" || counting) return;
     if(net.slot===0 || lobbyRoster.length>=MAXP) return;
     const name=(nameInput&&nameInput.value||"PLAYER").toUpperCase();
@@ -618,11 +628,11 @@
       });
     });
   }
-  setInterval(tryMerge, 4000);
   function playNow(){
     if(typeof Peer==="undefined"){ alert("Online failed"); return; }
     const name=(nameInput.value||"PLAYER").toUpperCase();
-    quickJoin(name,0);
+    matchGen++;
+    quickJoin(name,0,matchGen);
   }
   function joinOnline(){ playNow(); }
 
