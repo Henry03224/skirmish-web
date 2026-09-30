@@ -314,22 +314,22 @@
   const lobbyCodeEl=document.getElementById("lobbyCode");
   const lobbyStatusEl=document.getElementById("lobbyStatus");
   const lobbyListEl=document.getElementById("lobbyList");
-  const PEER_CFG={ debug:0, config:{ iceServers:[
+  const PEER_CFG={ debug:1, config:{ iceServers:[
     {urls:"stun:stun.l.google.com:19302"},
-    {urls:"stun:stun1.l.google.com:19302"},
-    {urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject"},
-    {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"}
+    {urls:"stun:stun1.l.google.com:19302"}
   ]}};
-  function pubId(){ return "swb"+Math.floor(Date.now()/180000); }
+  function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<4;i++) s+=a[(Math.random()*a.length)|0]; return s; }
+  function peerName(code){ return "sw"+String(code||"").toLowerCase(); }
   function renderLobby(){
     if(!lobbyListEl) return;
     lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+"</li>").join("");
-    if(lobbyCodeEl) lobbyCodeEl.textContent=(net&&net.code)||pubId();
-    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for others in this arena...":lobbyRoster.length+" soldiers connected";
+    if(lobbyCodeEl&&net) lobbyCodeEl.textContent=net.code||"----";
+    if(lobbyStatusEl) lobbyStatusEl.textContent = net&&net.role==="host"
+      ? "Give this code. Waiting for players..."
+      : "Connecting to host...";
   }
   function showLobby(msg){
-    menu.classList.add("hidden");
-    if(end) end.classList.add("hidden");
+    menu.classList.add("hidden"); if(end) end.classList.add("hidden");
     lobbyEl.classList.remove("hidden");
     if(msg&&lobbyStatusEl) lobbyStatusEl.textContent=msg;
     renderLobby();
@@ -341,77 +341,74 @@
     if(net&&net.peer) try{net.peer.destroy();}catch(e){}
     net=null; lobbyRoster=[]; players=[];
   }
-  function pushSnap(conn){
-    try{ if(conn) conn.send({t:"snap",snap:serialize()}); }catch(e){}
+  function pushSnap(conn){ try{ if(conn) conn.send({t:"snap",snap:serialize()}); }catch(e){} }
+  function startIfReady(){
+    if(!net||net.role!=="host") return;
+    if(mode==="play"){ sendAll({t:"snap",snap:serialize()}); return; }
+    hideLobby();
+    resetWorld(lobbyRoster.map((r,i)=>makePlayer(r.id,r.name,i,"human",r.gun||"pistol")));
+    sendAll({t:"start"}); sendAll({t:"snap",snap:serialize()});
   }
   function attachHost(conn){
     if(!net.conns.includes(conn)) net.conns.push(conn);
     conn.on("open",()=>pushSnap(conn));
     conn.on("data",msg=>{
-      if(msg.t==="hello"&&players.length<8&&!players.find(p=>p.id===msg.id)){
-        players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
+      if(msg.t==="hello"&&lobbyRoster.length<8&&!lobbyRoster.find(p=>p.id===msg.id)){
         lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
         renderLobby();
-        pushSnap(conn);
-        sendAll({t:"snap",snap:serialize()});
+        if(mode==="play"){
+          if(!players.find(p=>p.id===msg.id))
+            players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
+          pushSnap(conn);
+        } else {
+          startIfReady();
+        }
       }
       if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
     });
   }
-  function becomeHost(name, id){
-    const room=id||pubId();
-    const peer=new Peer(room, PEER_CFG);
-    net={role:"host",code:room,peer,conns:[]}; youId="p1"; localTwo=false;
+  function playNow(){
+    if(typeof Peer==="undefined"){ alert("PeerJS failed to load"); return; }
+    const name=(nameInput.value||"PLAYER").toUpperCase();
+    const code=roomCode();
+    const id=peerName(code);
+    const peer=new Peer(id, PEER_CFG);
+    net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false;
     lobbyRoster=[{id:"p1",name,gun:selectedGun}];
-    showLobby("Hosting "+room+"...");
-    peer.on("open",()=>{
-      if(lobbyCodeEl) lobbyCodeEl.textContent=room;
-      resetWorld([makePlayer("p1",name,0,"human",selectedGun)]);
-      hideLobby();
-    });
-    peer.on("error",err=>{
-      const t=String((err&&err.type)||err||"");
-      try{peer.destroy();}catch(e){}
-      if(/unavail|taken|exists|is taken/i.test(t)) becomeClient(name, room);
-      else becomeClient(name, room);
-    });
+    showLobby("Room "+code+" — waiting...");
+    if(lobbyCodeEl) lobbyCodeEl.textContent=code;
+    peer.on("open",()=>{ showLobby("Share code "+code); });
+    peer.on("error",err=>{ showLobby("Host error: "+((err&&err.type)||"retry")); });
     peer.on("connection",attachHost);
   }
-  function becomeClient(name, room){
+  function joinOnline(){
+    if(typeof Peer==="undefined"){ alert("PeerJS failed to load"); return; }
+    const raw=(document.getElementById("roomInput")&&document.getElementById("roomInput").value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(raw.length<4){ alert("Enter the 4-letter room code from the host"); return; }
+    const name=(nameInput.value||"GUEST").toUpperCase();
     const my=uid();
     const peer=new Peer(PEER_CFG);
-    net={role:"client",code:room,peer,hostConn:null}; youId=my; localTwo=false;
-    showLobby("Joining "+room+"...");
-    let got=false;
-    const fail=setTimeout(()=>{ if(!got){ try{peer.destroy();}catch(e){} becomeHost(name, room+"x"); } }, 7000);
+    net={role:"client",code:raw,peer,hostConn:null}; youId=my; localTwo=false;
+    showLobby("Joining "+raw+"...");
     peer.on("open",()=>{
-      const conn=peer.connect(room, {reliable:true});
+      const conn=peer.connect(peerName(raw), {reliable:true});
       net.hostConn=conn;
       conn.on("open",()=>{
         conn.send({t:"hello",id:my,name,gun:selectedGun});
-        showLobby("Connected. Syncing...");
+        showLobby("Joined "+raw+". Syncing...");
       });
       conn.on("data",msg=>{
-        if(msg.t==="snap"){
-          got=true; clearTimeout(fail);
+        if(msg.t==="start"||msg.t==="snap"){
           hideLobby();
-          applySnap(msg.snap);
+          if(msg.snap) applySnap(msg.snap);
           mode="play"; menu.classList.add("hidden"); goFs();
           if(window.SFX){ SFX.boot(); SFX.start(); }
         }
       });
-      conn.on("error",()=>{});
+      conn.on("error",()=>showLobby("Cannot reach host. Check code / same internet."));
     });
-    peer.on("error",()=>{ showLobby("Retry join..."); });
+    peer.on("error",err=>showLobby("Join error: "+((err&&err.type)||"retry")));
   }
-  function playNow(){
-    if(typeof Peer==="undefined"){ alert("Online failed"); return; }
-    const name=(nameInput.value||"PLAYER").toUpperCase();
-    showLobby("Finding arena...");
-    becomeHost(name);
-  }
-  function hostOnline(){ playNow(); }
-  function joinOnline(){ playNow(); }
 
   function bindStick(el, side){
     let pid=null;
@@ -453,7 +450,7 @@
   });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
-  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
+  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnJoin=document.getElementById("btnJoin"); if(btnJoin) btnJoin.onclick=joinOnline; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
   document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
   const muteBtn=document.getElementById("btnMute");
   if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
