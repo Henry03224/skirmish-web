@@ -14,52 +14,23 @@
     <main id="stage">
       <canvas id="game" width="1280" height="720"></canvas>
       <div id="menu" class="overlay">
-        <div class="panel">
+        <div class="panel intro">
           <h1>SKIRMISH</h1>
-          <p class="sub">7 maps. Floors block people and bullets.</p>
+          <p class="sub">Online arena</p>
           <label>Callsign
             <input id="nameInput" maxlength="12" placeholder="PLAYER" autocomplete="off" />
           </label>
-          <p class="label">Map</p>
-          <div id="mapPick" class="maps">
-            <button type="button" class="mapcard on" data-map="canyon">Canyon</button>
-            <button type="button" class="mapcard" data-map="keep">Keep</button>
-            <button type="button" class="mapcard" data-map="warehouse">Warehouse</button>
-            <button type="button" class="mapcard" data-map="ruins">Ruins</button>
-            <button type="button" class="mapcard" data-map="forest">Forest</button>
-            <button type="button" class="mapcard" data-map="docks">Docks</button>
-            <button type="button" class="mapcard" data-map="ice">Ice</button>
-          </div>
-          <p class="label">Loadout</p>
-          <div id="gunPick" class="maps">
-            <button type="button" class="mapcard on" data-gun="pistol">Pistol</button>
-            <button type="button" class="mapcard" data-gun="smg">SMG</button>
-            <button type="button" class="mapcard" data-gun="shot">Shotgun</button>
-            <button type="button" class="mapcard" data-gun="sniper">Sniper</button>
-          </div>
-          <div class="row"><button id="btnSolo">Play vs Bots</button></div>
-          <div class="row"><button id="btnLocal" class="ghost">2P Same Screen</button></div>
-          <p class="label">Online lobby</p>
-          <div class="row">
-            <button id="btnHost">Host Room</button>
-          </div>
-          <div class="row join">
-            <input id="roomInput" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
-            <button id="btnJoin" class="ghost">Join Online</button>
-          </div>
-          <p class="hint">Host a room, share the code, wait in lobby, then start.</p>
+          <div class="row"><button id="btnPlay">PLAY</button></div>
+          <div class="row"><button id="btnSolo" class="ghost">Solo vs Bots</button></div>
         </div>
       </div>
       <div id="lobby" class="overlay hidden">
         <div class="panel">
-          <h1>LOBBY</h1>
-          <p id="lobbyCode" class="code">ROOM —</p>
-          <p id="lobbyStatus" class="sub">Waiting for others...</p>
+          <h1>ARENA</h1>
+          <p id="lobbyCode" class="code">PUBLIC</p>
+          <p id="lobbyStatus" class="sub">Connecting...</p>
           <ul id="lobbyList" class="lobby-list"></ul>
-          <div class="row">
-            <button id="btnStart">Start Match</button>
-            <button id="btnLeave" class="ghost">Leave</button>
-          </div>
+          <div class="row"><button id="btnLeave" class="ghost">Leave</button></div>
         </div>
       </div>
       <div id="end" class="overlay hidden">
