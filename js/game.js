@@ -39,8 +39,8 @@
   loadBgs();
   let selectedMap="canyon", selectedGun="pistol";
   let MAP = (MAPS.canyon&&MAPS.canyon.plats)||[], SPAWNS = (MAPS.canyon&&MAPS.canyon.spawns)||[], mapId="canyon";
-  document.querySelectorAll("#mapPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#mapPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedMap=b.dataset.map; }; });
-  document.querySelectorAll("#gunPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#gunPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedGun=b.dataset.gun; }; });
+  document.querySelectorAll("#mapPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#mapPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedMap=b.dataset.map; if(window.SFX) SFX.ui(); }; });
+  document.querySelectorAll("#gunPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#gunPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedGun=b.dataset.gun; if(window.SFX) SFX.ui(); }; });
   const keys = {}; const sticks = { l:{dx:0,dy:0,on:0}, r:{dx:0,dy:0,on:0} };
   const mouse = {sx:0,sy:0,on:0};
   let mode="menu", localTwo=false, net=null, youId="p1";
@@ -76,6 +76,7 @@
     const mid=SPAWNS[2]||{x:960,y:500};
     pickups=[{x:mid.x,y:mid.y-20,t:"sniper",tmr:0},{x:(SPAWNS[0]||mid).x,y:(SPAWNS[0]||mid).y-20,t:"smg",tmr:0},{x:(SPAWNS[1]||mid).x,y:(SPAWNS[1]||mid).y-20,t:"shot",tmr:0},{x:960,y:1000,t:"health",tmr:0}];
     startAt=performance.now(); winner=null; mode="play"; menu.classList.add("hidden"); end.classList.add("hidden"); goFs();
+    if(window.SFX){ SFX.boot(); SFX.start(); }
   }
   function startSolo(){ const name=(nameInput.value||"PLAYER").toUpperCase(); const list=[makePlayer("p1",name,0,"human",selectedGun)]; const bots=["smg","shot","sniper","pistol"]; for(let i=0;i<4;i++) list.push(makePlayer("bot"+i,"BOT "+(i+1),i+1,"bot",bots[i])); youId="p1"; localTwo=false; net=null; resetWorld(list); }
   function startLocal(){ resetWorld([makePlayer("p1",(nameInput.value||"P1").toUpperCase(),0,"human",selectedGun), makePlayer("p2","P2",1,"human","smg"), makePlayer("bot0","BOT 1",2,"bot","sniper"), makePlayer("bot1","BOT 2",3,"bot","shot")]); youId="p1"; localTwo=true; net=null; }
@@ -102,7 +103,7 @@
   function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-p.y,t.x-p.x); }
   function fire(p){
     const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0||p.ammo<=0) return;
-    p.fireCd=g.cd; p.ammo-=g.take;
+    p.fireCd=g.cd; p.ammo-=g.take; if(window.SFX) SFX.shoot(p.weapon);
     const base=p.aim||0;
     flashes.push({x:p.x+Math.cos(base)*42,y:p.y+Math.sin(base)*16,a:base,life:8,max:8});
     for(let i=0;i<g.n;i++){
@@ -111,8 +112,8 @@
     }
   }
   function throwNade(p){ if(p.nadeCd>0||p.nades<=0) return; p.nades--; p.nadeCd=56; const a=p.aim||(p.dir>0?-0.4:Math.PI+0.4); nades.push({x:p.x,y:p.y,vx:Math.cos(a)*5.5,vy:Math.sin(a)*5.5-2.2,owner:p.id,fuse:78}); }
-  function explode(x,y,owner,r,dmg){ for(let i=0;i<16;i++) particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:18,c:"#ffb020"}); for(const p of players){ if(!p.alive) continue; const d=Math.hypot(p.x-x,p.y-y); if(d<r) hurt(p,dmg*(1-d/r),owner); } }
-  function hurt(p,dmg,owner){ p.hp-=dmg; if(p.hp<=0){ p.hp=0; p.alive=false; p.deaths++; p.respawn=90; const k=players.find(o=>o.id===owner); if(k&&k.id!==p.id) k.kills++; } }
+  function explode(x,y,owner,r,dmg){ if(window.SFX) SFX.boom(); for(let i=0;i<16;i++) particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:18,c:"#ffb020"}); for(const p of players){ if(!p.alive) continue; const d=Math.hypot(p.x-x,p.y-y); if(d<r) hurt(p,dmg*(1-d/r),owner); } }
+  function hurt(p,dmg,owner){ p.hp-=dmg; if(window.SFX) SFX.hit(); if(p.hp<=0){ p.hp=0; p.alive=false; p.deaths++; p.respawn=90; const k=players.find(o=>o.id===owner); if(k&&k.id!==p.id) k.kills++; if(window.SFX) SFX.die(); } }
   function cycleGun(p){ const i=GUNS.indexOf(p.weapon); p.weapon=GUNS[(i+1)%GUNS.length]; p.ammo=GUN[p.weapon].ammo; }
   function stepPlayer(p){
     if(!p.alive){ p.respawn--; if(p.respawn<=0){ const s=spawnPoint(); Object.assign(p,{x:s.x,y:s.y,vx:0,vy:0,hp:p.maxHp||100,jet:100,ammo:GUN[p.weapon].ammo,nades:2,alive:true}); } return; }
@@ -123,6 +124,7 @@
     if(p.input.jet&&p.jet>0){
       p.vy-=JET; p.jet-=0.72;
       particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
+      if(window.SFX) SFX.jet();
     } else p.jet=Math.min(100,p.jet+0.38);
     p.vy=clamp(p.vy+GRAV,-MAX_VY,MAX_VY); p.x+=p.vx; p.y+=p.vy; p.x=clamp(p.x,16,WW-16);
     if(p.y>WH+40){ p.hp=0; hurt(p,999,p.id); }
@@ -133,12 +135,12 @@
     if(p.input.fire) fire(p); if(p.input.nade) throwNade(p);
     if(p.input.swap){ cycleGun(p); p.input.swap=0; }
     if(p.kind==="human") p.dir = Math.cos(p.aim||0)>=0?1:-1;
-    for(const pk of pickups){ if(pk.tmr>0){ pk.tmr--; continue; } if(Math.hypot(pk.x-p.x,pk.y-p.y)<30){ if(pk.t==="health") p.hp=Math.min(p.maxHp||100,p.hp+45); if(GUN[pk.t]){ p.weapon=pk.t; p.ammo=GUN[pk.t].ammo; } pk.tmr=380; } }
+    for(const pk of pickups){ if(pk.tmr>0){ pk.tmr--; continue; } if(Math.hypot(pk.x-p.x,pk.y-p.y)<30){ if(pk.t==="health") p.hp=Math.min(p.maxHp||100,p.hp+45); if(GUN[pk.t]){ p.weapon=pk.t; p.ammo=GUN[pk.t].ammo; } pk.tmr=380; if(window.SFX) SFX.pickup(); } }
   }
   function stepWorld(){
     tick++;
     const left=MATCH_MS-(performance.now()-startAt);
-    if(left<=0&&!winner){ winner=[...players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)[0]; mode="end"; document.getElementById("endTitle").textContent=winner.name+" wins"; document.getElementById("endBody").textContent=players.map(p=>p.name+" "+p.kills+"K/"+p.deaths+"D").join(" · "); end.classList.remove("hidden"); return; }
+    if(left<=0&&!winner){ winner=[...players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)[0]; mode="end"; document.getElementById("endTitle").textContent=winner.name+" wins"; document.getElementById("endBody").textContent=players.map(p=>p.name+" "+p.kills+"K/"+p.deaths+"D").join(" · "); end.classList.remove("hidden"); if(window.SFX) SFX.win(); return; }
     for(const p of players){ if(p.kind==="bot") botThink(p); stepPlayer(p); }
     for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; b.life--; if(inWall(b.x,b.y)){ b.life=0; continue; } for(const p of players){ if(!p.alive||p.id===b.owner) continue; if(Math.hypot(p.x-b.x,p.y-b.y)<18){ hurt(p,b.dmg,b.owner); b.life=0; } } }
     bullets=bullets.filter(b=>b.life>0);
@@ -226,11 +228,11 @@
     const me=players.find(p=>p.id===youId)||players[0]; if(me) drawHud(me);
   }
   function serialize(){ return {startAt,players,bullets,nades,pickups,flashes,winner,mode,mapId}; }
-  function applySnap(s){ startAt=s.startAt; players=s.players; bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner; if(s.mapId) useMap(s.mapId); players.forEach((p,i)=>{ if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI]; }); if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); } }
+  function applySnap(s){ startAt=s.startAt; players=s.players; bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner; if(s.mapId) useMap(s.mapId); players.forEach((p,i)=>{ if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI]; }); if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); } }
   function loop(){ requestAnimationFrame(loop); const me=players.find(p=>p.id===youId); if(mode==="play"){ if(me&&me.kind==="human") readHuman(me,1); if(localTwo){ const p2=players.find(p=>p.id==="p2"); if(p2) readHuman(p2,2); } const host=!net||net.role==="host"; if(host){ stepWorld(); if(net&&net.conns){ const snap=serialize(); net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} }); } } else if(net&&me){ try{ net.hostConn.send({t:"in",id:youId,input:me.input}); }catch(e){} } draw(); } }
   function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=a[(Math.random()*a.length)|0]; return s; }
   function hostOnline(){ if(typeof Peer==="undefined"){ alert("PeerJS failed"); return; } const code=roomCode(), name=(nameInput.value||"HOST").toUpperCase(); const peer=new Peer("skirmish-"+code); net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false; peer.on("open",()=>resetWorld([makePlayer("p1",name,0,"human",selectedGun)])); peer.on("connection",conn=>{ net.conns.push(conn); conn.on("data",msg=>{ if(msg.t==="hello"&&players.length<6) players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol")); if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; } }); }); }
-  function joinOnline(){ if(typeof Peer==="undefined") return; const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4) return; const name=(nameInput.value||"GUEST").toUpperCase(), my=uid(); const peer=new Peer(); net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false; peer.on("open",()=>{ const conn=peer.connect("skirmish-"+code); net.hostConn=conn; conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); menu.classList.add("hidden"); mode="play"; goFs(); }); conn.on("data",msg=>{ if(msg.t==="snap") applySnap(msg.snap); }); }); }
+  function joinOnline(){ if(typeof Peer==="undefined") return; const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4) return; const name=(nameInput.value||"GUEST").toUpperCase(), my=uid(); const peer=new Peer(); net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false; peer.on("open",()=>{ const conn=peer.connect("skirmish-"+code); net.hostConn=conn; conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); menu.classList.add("hidden"); mode="play"; goFs(); if(window.SFX){ SFX.boot(); SFX.start(); } }); conn.on("data",msg=>{ if(msg.t==="snap") applySnap(msg.snap); }); }); }
   function bindStick(el, side){
     let pid=null;
     const set=(ev)=>{
@@ -269,6 +271,8 @@
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
   document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; document.getElementById("btnLocal").onclick=startLocal; document.getElementById("btnHost").onclick=hostOnline; document.getElementById("btnJoin").onclick=joinOnline;
-  document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; };
+  document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
+  const muteBtn=document.getElementById("btnMute");
+  if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
   requestAnimationFrame(loop);
 })();
