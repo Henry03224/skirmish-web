@@ -8,7 +8,7 @@
   const WW = 1920, WH = 1080;
   let VW = 1280, VH = 720;
   const GRAV = 0.18, JET = 0.28, MOVE = 0.18, FRIC = 0.90, MAX_VX = 2.6, MAX_VY = 3.4;
-  const MATCH_MS = 120000;
+  const MATCH_MS = 300000;
   const GUNS = ["pistol","smg","shot","sniper"];
   const GUN = {
     pistol: { n:1, spread:0.03, spd:8.5, dmg:16, cd:18, ammo:28, take:1 },
@@ -273,12 +273,18 @@
     ctx.fillStyle="#fff"; ctx.font="12px sans-serif";
     ctx.fillText(me.weapon.toUpperCase()+"  UNLIM   JET "+jet, 16, 78);
     const left=Math.max(0,MATCH_MS-(performance.now()-startAt));
-    ctx.textAlign="right"; ctx.fillText((left/1000|0)+"s", VW-12, 18);
+    const mm=(left/60000)|0, ss=((left/1000)|0)%60;
+    const clock=mm+":"+(ss<10?"0":"")+ss;
+    ctx.font="bold 22px sans-serif";
+    ctx.textAlign="right"; ctx.fillStyle="#ffe14a";
+    ctx.fillText(clock, VW-12, 26);
+    ctx.font="bold 13px sans-serif"; ctx.fillStyle="#fff";
+    ctx.fillText("KILLS "+(me.kills|0), VW-12, 46);
     if(net){
       ctx.font="11px sans-serif";
-      ctx.fillText((net.code||"PUB")+"  "+players.filter(p=>p.kind==="human").length+"P", VW-12, 34);
+      ctx.fillText((net.code||"PUB")+"  "+players.filter(p=>p.kind==="human").length+"P", VW-12, 64);
       ctx.fillStyle = pingMs<80?"#3dff8a": pingMs<160?"#ffe14a":"#ff4d4d";
-      ctx.fillText(pingMs?("PING "+pingMs+" ms"):"PING --", VW-12, 50);
+      ctx.fillText(pingMs?("PING "+pingMs+" ms"):"PING --", VW-12, 80);
     }
   }
   function draw(){
