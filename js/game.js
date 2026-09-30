@@ -7,7 +7,7 @@
   const roomInput = document.getElementById("roomInput");
   const WW = 1920, WH = 1080;
   let VW = 1280, VH = 720;
-  const GRAV = 0.22, JET = 0.40, MOVE = 0.16, FRIC = 0.88, MAX_VX = 2.6, MAX_VY = 4.4;
+  const GRAV = 0.20, JET = 0.38, MOVE = 0.18, FRIC = 0.90, MAX_VX = 2.8, MAX_VY = 4.2;
   const MATCH_MS = 120000;
   const GUNS = ["pistol","smg","shot","sniper"];
   const GUN = {
@@ -169,18 +169,12 @@
     if(p.input.l){ p.vx-=MOVE; }
     if(p.input.r){ p.vx+=MOVE; }
     p.vx=clamp(p.vx*FRIC,-MAX_VX,MAX_VX);
-    const sideFly = p.input.l || p.input.r || Math.abs(p.vx)>1.05;
     if(p.input.jet&&p.jet>0){
-      if(sideFly){
-        p.jet=Math.max(0,p.jet-1.6);
-        p.vy+=GRAV*0.35;
-      } else {
-        p.vy-=JET;
-        p.jet-=0.22;
-        particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
-        if(window.SFX) SFX.jet();
-      }
-    } else p.jet=Math.min(100,p.jet+0.28);
+      p.vy-=JET;
+      p.jet-=0.20;
+      particles.push({x:p.x+(Math.random()-0.5)*8,y:p.y+22,vx:(Math.random()-0.5)*0.6,vy:1.6+Math.random(),life:14,c:"flame"});
+      if(window.SFX) SFX.jet();
+    } else p.jet=Math.min(100,p.jet+0.30);
     p.vy=clamp(p.vy+GRAV,-MAX_VY,MAX_VY); p.x+=p.vx; p.y+=p.vy; p.x=clamp(p.x,16,WW-16);
     if(p.y>WH+40){ p.hp=0; hurt(p,999,p.id); }
     p.grounded=platHit(p);
