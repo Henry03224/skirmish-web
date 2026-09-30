@@ -17,7 +17,7 @@ html, body {
   position:absolute; inset:0; display:grid; place-items:center;
   background:rgba(5,8,12,.82); z-index:5; padding:12px; overflow:auto;
 }
-.overlay.hidden { display:none; }
+.overlay.hidden, .hidden, #countDown.hidden { display:none !important; }
 .panel {
   width:min(460px,96vw); background:var(--panel); border:1px solid #2a3a44;
   border-radius:16px; padding:16px 18px;
