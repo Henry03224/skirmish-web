@@ -416,7 +416,7 @@
         showLobby("In room "+(slot+1));
       });
       conn.on("data",msg=>{
-        if(msg.t==="full"){ try{peer.destroy();}catch(e){} next(); return; }
+        if(msg.t==="full"){ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); return; }
         if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; renderLobby(); }
         if(msg.t==="count") showCount(msg.n);
         if(msg.t==="start"||msg.t==="snap"){
@@ -432,7 +432,7 @@
   }
   function quickJoin(name, slot){
     slot=slot||0;
-    if(slot>=ROOMS){ hostSlot(name,0); return; }
+    if(slot>=ROOMS){ hostSlot(name, ROOMS-1); return; }
     showLobby("Quick match...");
     joinSlot(name, slot, ()=>hostSlot(name, slot));
   }
