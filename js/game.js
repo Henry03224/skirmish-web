@@ -550,6 +550,7 @@
     el.addEventListener("pointercancel",up);
   }
   bindStick(document.getElementById("stickL"),"l"); bindStick(document.getElementById("stickR"),"r");
+  window.addEventListener("pointerup",()=>{ sticks.l.on=0; sticks.l.dx=0; sticks.l.dy=0; sticks.r.on=0; });
   window.addEventListener("keydown",e=>{ keys[e.key.toLowerCase()]=true; }); window.addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; });
   canvas.addEventListener("mousemove",e=>{
     if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
