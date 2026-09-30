@@ -9,6 +9,7 @@
 </head>
 <body>
   <div id="app">
+    <button id="btnMute" class="fs-btn mute-btn" type="button">SFX</button>
     <button id="btnFs" class="fs-btn" type="button">FULL</button>
     <main id="stage">
       <canvas id="game" width="1280" height="720"></canvas>
@@ -45,7 +46,7 @@
             <input id="roomInput" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
             <button id="btnJoin" class="ghost">Join</button>
           </div>
-          <p class="hint">Left stick move · right stick aim/fire · JET / NADE / GUN.</p>
+          <p class="hint">Left stick move · right stick aim/fire · JET / NADE / GUN · SFX button mutes.</p>
         </div>
       </div>
       <div id="end" class="overlay hidden">
@@ -67,6 +68,7 @@
     </main>
   </div>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/maps-data.js"></script>
   <script src="js/game.js"></script>
 </body>
