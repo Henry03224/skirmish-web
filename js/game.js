@@ -43,7 +43,7 @@
   document.querySelectorAll("#gunPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#gunPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedGun=b.dataset.gun; if(window.SFX) SFX.ui(); }; });
   const keys = {}; const sticks = { l:{dx:0,dy:0,on:0}, r:{dx:0,dy:0,on:0} };
   const mouse = {sx:0,sy:0,on:0};
-  let mode="menu", localTwo=false, net=null, youId="p1";
+  let mode="menu", localTwo=false, net=null, youId="p1", lobbyRoster=[];
   let players=[], bullets=[], nades=[], pickups=[], particles=[], flashes=[];
   let startAt=0, winner=null, tick=0, camPos={x:960,y:540}, camCache={sc:1,ox:0,oy:0};
   function uid(){ return Math.random().toString(36).slice(2,8); }
@@ -309,8 +309,84 @@
   function applySnap(s){ startAt=s.startAt; players=s.players; bullets=s.bullets; nades=s.nades; pickups=s.pickups; flashes=s.flashes||[]; winner=s.winner; if(s.mapId) useMap(s.mapId); players.forEach((p,i)=>{ if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI]; }); if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); } }
   function loop(){ requestAnimationFrame(loop); const me=players.find(p=>p.id===youId); if(mode==="play"){ if(me&&me.kind==="human") readHuman(me,1); if(localTwo){ const p2=players.find(p=>p.id==="p2"); if(p2) readHuman(p2,2); } const host=!net||net.role==="host"; if(host){ stepWorld(); if(net&&net.conns){ const snap=serialize(); net.conns.forEach(c=>{ try{c.send({t:"snap",snap});}catch(e){} }); } } else if(net&&me){ try{ net.hostConn.send({t:"in",id:youId,input:me.input}); }catch(e){} } draw(); } }
   function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=a[(Math.random()*a.length)|0]; return s; }
-  function hostOnline(){ if(typeof Peer==="undefined"){ alert("PeerJS failed"); return; } const code=roomCode(), name=(nameInput.value||"HOST").toUpperCase(); const peer=new Peer("skirmish-"+code); net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false; peer.on("open",()=>resetWorld([makePlayer("p1",name,0,"human",selectedGun)])); peer.on("connection",conn=>{ net.conns.push(conn); conn.on("data",msg=>{ if(msg.t==="hello"&&players.length<6) players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol")); if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; } }); }); }
-  function joinOnline(){ if(typeof Peer==="undefined") return; const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4) return; const name=(nameInput.value||"GUEST").toUpperCase(), my=uid(); const peer=new Peer(); net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false; peer.on("open",()=>{ const conn=peer.connect("skirmish-"+code); net.hostConn=conn; conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); menu.classList.add("hidden"); mode="play"; goFs(); if(window.SFX){ SFX.boot(); SFX.start(); } }); conn.on("data",msg=>{ if(msg.t==="snap") applySnap(msg.snap); }); }); }
+  const lobbyEl=document.getElementById("lobby");
+  const lobbyCodeEl=document.getElementById("lobbyCode");
+  const lobbyStatusEl=document.getElementById("lobbyStatus");
+  const lobbyListEl=document.getElementById("lobbyList");
+  const btnStart=document.getElementById("btnStart");
+  function renderLobby(){
+    if(!lobbyListEl) return;
+    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+"</li>").join("");
+    if(lobbyCodeEl&&net) lobbyCodeEl.textContent="ROOM "+net.code;
+    if(lobbyStatusEl){
+      lobbyStatusEl.textContent = net&&net.role==="host"
+        ? (lobbyRoster.length<2?"Waiting for others to join...":lobbyRoster.length+" ready — start when you want")
+        : "Waiting for host to start...";
+    }
+  }
+  function showLobby(){
+    menu.classList.add("hidden");
+    if(end) end.classList.add("hidden");
+    lobbyEl.classList.remove("hidden");
+    if(btnStart) btnStart.style.display = net&&net.role==="host" ? "block" : "none";
+    renderLobby();
+  }
+  function hideLobby(){ if(lobbyEl) lobbyEl.classList.add("hidden"); }
+  function sendAll(msg){ if(!net||!net.conns) return; net.conns.forEach(c=>{ try{c.send(msg);}catch(e){} }); }
+  function broadcastLobby(){ sendAll({t:"lobby",roster:lobbyRoster,map:selectedMap,code:net&&net.code}); }
+  function leaveLobby(){
+    hideLobby(); menu.classList.remove("hidden"); mode="menu";
+    if(net&&net.peer) try{net.peer.destroy();}catch(e){}
+    net=null; lobbyRoster=[]; players=[];
+  }
+  function startLobbyMatch(){
+    if(!net||net.role!=="host") return;
+    if(!lobbyRoster.length) return;
+    hideLobby();
+    resetWorld(lobbyRoster.map((r,i)=>makePlayer(r.id,r.name,i,"human",r.gun||"pistol")));
+    sendAll({t:"start",map:selectedMap});
+  }
+  function hostOnline(){
+    if(typeof Peer==="undefined"){ alert("PeerJS failed"); return; }
+    const code=roomCode(), name=(nameInput.value||"HOST").toUpperCase();
+    const peer=new Peer("skirmish-"+code);
+    net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false;
+    lobbyRoster=[{id:"p1",name,gun:selectedGun}];
+    peer.on("open",()=>showLobby());
+    peer.on("error",()=>{ lobbyStatusEl.textContent="Host failed. Try again."; });
+    peer.on("connection",conn=>{
+      net.conns.push(conn);
+      conn.on("open",()=>broadcastLobby());
+      conn.on("data",msg=>{
+        if(msg.t==="hello"&&lobbyRoster.length<6){
+          lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
+          renderLobby(); broadcastLobby();
+        }
+        if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
+      });
+    });
+  }
+  function joinOnline(){
+    if(typeof Peer==="undefined") return;
+    const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(code.length<4){ alert("Enter room code"); return; }
+    const name=(nameInput.value||"GUEST").toUpperCase(), my=uid();
+    const peer=new Peer();
+    net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false;
+    lobbyRoster=[];
+    if(lobbyStatusEl){ menu.classList.add("hidden"); lobbyEl.classList.remove("hidden"); if(btnStart) btnStart.style.display="none"; lobbyCodeEl.textContent="ROOM "+code; lobbyStatusEl.textContent="Connecting..."; }
+    peer.on("error",()=>{ lobbyStatusEl.textContent="Cannot find room."; });
+    peer.on("open",()=>{
+      const conn=peer.connect("skirmish-"+code);
+      net.hostConn=conn;
+      conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); showLobby(); });
+      conn.on("data",msg=>{
+        if(msg.t==="lobby"){ lobbyRoster=msg.roster||[]; if(msg.map) selectedMap=msg.map; renderLobby(); }
+        if(msg.t==="start"){ hideLobby(); menu.classList.add("hidden"); mode="play"; goFs(); if(window.SFX){ SFX.boot(); SFX.start(); } }
+        if(msg.t==="snap"){ hideLobby(); applySnap(msg.snap); if(mode!=="play"){ mode="play"; menu.classList.add("hidden"); goFs(); } }
+      });
+    });
+  }
   function bindStick(el, side){
     let pid=null;
     const set=(ev)=>{
@@ -351,7 +427,7 @@
   });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
-  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; document.getElementById("btnLocal").onclick=startLocal; document.getElementById("btnHost").onclick=hostOnline; document.getElementById("btnJoin").onclick=joinOnline;
+  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; document.getElementById("btnLocal").onclick=startLocal; document.getElementById("btnHost").onclick=hostOnline; document.getElementById("btnJoin").onclick=joinOnline; if(btnStart) btnStart.onclick=startLobbyMatch; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
   document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
   const muteBtn=document.getElementById("btnMute");
   if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
