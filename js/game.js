@@ -269,6 +269,7 @@
     ctx.textAlign="right"; ctx.fillText((left/1000|0)+"s", VW-12, 18);
   }
   function draw(){
+    updateCam();
     ctx.clearRect(0,0,VW,VH); ctx.fillStyle="#050608"; ctx.fillRect(0,0,VW,VH); const c=cam();
     if(bgImgs[mapId]) ctx.drawImage(bgImgs[mapId], c.ox,c.oy,WW*c.sc,WH*c.sc);
     else { ctx.fillStyle="#111"; ctx.fillRect(c.ox,c.oy,WW*c.sc,WH*c.sc); }
