@@ -49,18 +49,21 @@ button.ghost { background:transparent; color:var(--accent); border:1px solid var
   padding:0 calc(56px + env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) calc(56px + env(safe-area-inset-left));
   pointer-events:none; z-index:4;
 }
-.stick { pointer-events:auto; }
+.stick, .mid button { pointer-events:auto; }
 .stick {
-  width:108px; height:108px; border-radius:50%;
+  width:148px; height:148px; border-radius:50%;
   background:#ffffff14; border:2px solid #ffffff33; position:relative;
-  margin:0 6px;
+  margin:0 4px;
 }
 .stick i {
-  position:absolute; left:50%; top:50%; width:50px; height:50px; margin:-25px;
+  position:absolute; left:50%; top:50%; width:64px; height:64px; margin:-32px;
   border-radius:50%; background:#ffffff55;
 }
-.stick.fire { background:#7cf0ff18; border-color:#7cf0ff66; }
-.mid { display:none; }
+.stick.fire {
+  width:168px; height:168px;
+  background:#7cf0ff18; border-color:#7cf0ff66;
+}
+.mid { display:flex; gap:8px; padding-bottom:8px; }
 .mid button {
   width:56px; height:56px; flex:none; border-radius:50%; font-size:10px;
   background:#7cf0ffbb;
