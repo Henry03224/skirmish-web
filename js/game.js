@@ -560,11 +560,9 @@
     peer.on("open",()=>{ opened=true; showLobby("Waiting for players"); renderLobby(); });
     peer.on("connection",attachHost);
     peer.on("error",err=>{
-      const t=String((err&&err.type)||err||"");
       if(opened) return;
       try{ peer.destroy(); }catch(e){}
-      if(/unavail|taken|exists/i.test(t)) joinSlot(name, slot, function(){ hostSlot(name, slot+1, gen); }, gen);
-      else if(gen===matchGen) joinSlot(name, slot, function(){ hostSlot(name, slot, gen); }, gen);
+      joinSlot(name, 0, function(){ setTimeout(()=>{ if(gen===matchGen) hostSlot(name, 0, gen); }, 1200); }, gen);
     });
   }
   function joinSlot(name, slot, next, gen){
@@ -584,7 +582,7 @@
         showLobby("In lobby");
       });
       conn.on("data",msg=>{
-        if(msg.t==="full"){ try{peer.destroy();}catch(e){} if(gen===matchGen) hostSlot(name, slot+1, gen); return; }
+        if(msg.t==="full"){ try{peer.destroy();}catch(e){} if(gen===matchGen) hostSlot(name, 1, gen); return; }
         if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; counting=false; renderLobby(); }
         if(msg.t==="count"){ counting=true; showCount(msg.n); }
         if(msg.t==="ping"){ try{ conn.send({t:"pong",t0:msg.t0}); }catch(e){} }
@@ -618,28 +616,14 @@
   function joinOnline(){ playNow(); }
   function lobbyRefresh(){
     if(mode==="play" || counting) return;
-    if(!net || !lobbyEl || lobbyEl.classList.contains("hidden")) return;
+    if(!lobbyEl || lobbyEl.classList.contains("hidden")) return;
     if(lobbyRoster.length>=2) return;
     const name=(nameInput&&nameInput.value||"PLAYER").toUpperCase();
-    if(lobbyStatusEl) lobbyStatusEl.innerHTML="REFRESHING ROOM<br>LOOKING FOR PLAYERS";
-    if(net.role==="host" && net.slot>0){
-      matchGen++;
-      try{ if(net.peer) net.peer.destroy(); }catch(e){}
-      net=null;
-      joinSlot(name, 0, function(){ hostSlot(name, 0, matchGen); }, matchGen);
-      return;
-    }
-    if(net.role==="client"){
-      try{
-        if(net.hostConn) net.hostConn.send({t:"hello",id:youId,name,gun:selectedGun});
-        else if(net.peer) net.peer.connect(liveId(net.slot||0),{reliable:true});
-      }catch(e){
-        matchGen++;
-        joinSlot(name, 0, function(){ hostSlot(name, 0, matchGen); }, matchGen);
-      }
-    }
-    if(net&&net.role==="host") sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
-    renderLobby();
+    if(lobbyStatusEl) lobbyStatusEl.innerHTML="AUTO RETRY<br>FINDING PLAYERS";
+    matchGen++;
+    try{ if(net&&net.peer) net.peer.destroy(); }catch(e){}
+    net=null; lobbyRoster=[];
+    setTimeout(()=>hostSlot(name, 0, matchGen), 400+Math.random()*900);
   }
   setInterval(lobbyRefresh, 5000);
 
