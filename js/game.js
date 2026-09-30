@@ -313,80 +313,92 @@
   const lobbyCodeEl=document.getElementById("lobbyCode");
   const lobbyStatusEl=document.getElementById("lobbyStatus");
   const lobbyListEl=document.getElementById("lobbyList");
-  const btnStart=document.getElementById("btnStart");
+  const PUB="skirmishwebpub";
   function renderLobby(){
     if(!lobbyListEl) return;
     lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+"</li>").join("");
-    if(lobbyCodeEl&&net) lobbyCodeEl.textContent="ROOM "+net.code;
-    if(lobbyStatusEl){
-      lobbyStatusEl.textContent = net&&net.role==="host"
-        ? (lobbyRoster.length<2?"Waiting for others to join...":lobbyRoster.length+" ready — start when you want")
-        : "Waiting for host to start...";
-    }
+    if(lobbyCodeEl) lobbyCodeEl.textContent="PUBLIC";
+    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for others...":lobbyRoster.length+" soldiers in arena";
   }
-  function showLobby(){
+  function showLobby(msg){
     menu.classList.add("hidden");
     if(end) end.classList.add("hidden");
     lobbyEl.classList.remove("hidden");
-    if(btnStart) btnStart.style.display = net&&net.role==="host" ? "block" : "none";
+    if(msg&&lobbyStatusEl) lobbyStatusEl.textContent=msg;
     renderLobby();
   }
   function hideLobby(){ if(lobbyEl) lobbyEl.classList.add("hidden"); }
   function sendAll(msg){ if(!net||!net.conns) return; net.conns.forEach(c=>{ try{c.send(msg);}catch(e){} }); }
-  function broadcastLobby(){ sendAll({t:"lobby",roster:lobbyRoster,map:selectedMap,code:net&&net.code}); }
   function leaveLobby(){
     hideLobby(); menu.classList.remove("hidden"); mode="menu";
     if(net&&net.peer) try{net.peer.destroy();}catch(e){}
     net=null; lobbyRoster=[]; players=[];
   }
-  function startLobbyMatch(){
-    if(!net||net.role!=="host") return;
-    if(!lobbyRoster.length) return;
+  function enterArena(list){
     hideLobby();
-    resetWorld(lobbyRoster.map((r,i)=>makePlayer(r.id,r.name,i,"human",r.gun||"pistol")));
-    sendAll({t:"start",map:selectedMap});
+    resetWorld(list);
   }
-  function hostOnline(){
-    if(typeof Peer==="undefined"){ alert("PeerJS failed"); return; }
-    const code=roomCode(), name=(nameInput.value||"HOST").toUpperCase();
-    const peer=new Peer("skirmish-"+code);
-    net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false;
+  function attachHost(conn){
+    net.conns.push(conn);
+    conn.on("data",msg=>{
+      if(msg.t==="hello"&&players.length<8){
+        const np=makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol");
+        players.push(np);
+        lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
+        renderLobby();
+      }
+      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
+    });
+  }
+  function becomeHost(name){
+    const peer=new Peer(PUB);
+    net={role:"host",code:"PUBLIC",peer,conns:[]}; youId="p1"; localTwo=false;
     lobbyRoster=[{id:"p1",name,gun:selectedGun}];
-    peer.on("open",()=>showLobby());
-    peer.on("error",()=>{ lobbyStatusEl.textContent="Host failed. Try again."; });
-    peer.on("connection",conn=>{
-      net.conns.push(conn);
-      conn.on("open",()=>broadcastLobby());
-      conn.on("data",msg=>{
-        if(msg.t==="hello"&&lobbyRoster.length<6){
-          lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol"});
-          renderLobby(); broadcastLobby();
-        }
-        if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
-      });
-    });
-  }
-  function joinOnline(){
-    if(typeof Peer==="undefined") return;
-    const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
-    if(code.length<4){ alert("Enter room code"); return; }
-    const name=(nameInput.value||"GUEST").toUpperCase(), my=uid();
-    const peer=new Peer();
-    net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false;
-    lobbyRoster=[];
-    if(lobbyStatusEl){ menu.classList.add("hidden"); lobbyEl.classList.remove("hidden"); if(btnStart) btnStart.style.display="none"; lobbyCodeEl.textContent="ROOM "+code; lobbyStatusEl.textContent="Connecting..."; }
-    peer.on("error",()=>{ lobbyStatusEl.textContent="Cannot find room."; });
     peer.on("open",()=>{
-      const conn=peer.connect("skirmish-"+code);
-      net.hostConn=conn;
-      conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); showLobby(); });
-      conn.on("data",msg=>{
-        if(msg.t==="lobby"){ lobbyRoster=msg.roster||[]; if(msg.map) selectedMap=msg.map; renderLobby(); }
-        if(msg.t==="start"){ hideLobby(); menu.classList.add("hidden"); mode="play"; goFs(); if(window.SFX){ SFX.boot(); SFX.start(); } }
-        if(msg.t==="snap"){ hideLobby(); applySnap(msg.snap); if(mode!=="play"){ mode="play"; menu.classList.add("hidden"); goFs(); } }
-      });
+      showLobby("You are host. Others will appear here.");
+      enterArena([makePlayer("p1",name,0,"human",selectedGun)]);
     });
+    peer.on("error",err=>{
+      if(String(err&&err.type).includes("unavailable") || String(err).includes("unavailable") || String(err).includes("taken") || String(err).includes("ID")){
+        try{peer.destroy();}catch(e){}
+        becomeClient(name);
+      } else if(lobbyStatusEl) lobbyStatusEl.textContent="Retrying...";
+    });
+    peer.on("connection",attachHost);
   }
+  function becomeClient(name){
+    const my=uid();
+    const peer=new Peer();
+    net={role:"client",code:"PUBLIC",peer,hostConn:null}; youId=my; localTwo=false;
+    showLobby("Joining public arena...");
+    peer.on("open",()=>{
+      const conn=peer.connect(PUB);
+      net.hostConn=conn;
+      conn.on("open",()=>{
+        conn.send({t:"hello",id:my,name,gun:selectedGun});
+        showLobby("In arena. Waiting for world...");
+      });
+      conn.on("data",msg=>{
+        if(msg.t==="snap"){
+          hideLobby();
+          applySnap(msg.snap);
+          mode="play"; menu.classList.add("hidden"); goFs();
+          if(window.SFX){ SFX.boot(); SFX.start(); }
+        }
+      });
+      conn.on("error",()=>{ showLobby("Host lost. Becoming host..."); becomeHost(name); });
+    });
+    peer.on("error",()=>showLobby("Connecting..."));
+  }
+  function playNow(){
+    if(typeof Peer==="undefined"){ alert("Online failed"); return; }
+    const name=(nameInput.value||"PLAYER").toUpperCase();
+    showLobby("Finding public arena...");
+    becomeHost(name);
+  }
+  function hostOnline(){ playNow(); }
+  function joinOnline(){ playNow(); }
+
   function bindStick(el, side){
     let pid=null;
     const set=(ev)=>{
@@ -427,7 +439,7 @@
   });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
-  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; document.getElementById("btnLocal").onclick=startLocal; document.getElementById("btnHost").onclick=hostOnline; document.getElementById("btnJoin").onclick=joinOnline; if(btnStart) btnStart.onclick=startLobbyMatch; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
+  document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; const btnPlay=document.getElementById("btnPlay"); if(btnPlay) btnPlay.onclick=playNow; const btnLeave=document.getElementById("btnLeave"); if(btnLeave) btnLeave.onclick=leaveLobby;
   document.getElementById("btnAgain").onclick=()=>{ mode="menu"; end.classList.add("hidden"); menu.classList.remove("hidden"); if(net&&net.peer) try{net.peer.destroy();}catch(e){} net=null; if(window.SFX) SFX.menu(); };
   const muteBtn=document.getElementById("btnMute");
   if(muteBtn) muteBtn.onclick=()=>{ if(!window.SFX) return; const on=SFX.toggle(); muteBtn.textContent=on?"SFX":"MUTE"; };
