@@ -69,7 +69,7 @@
   function useMap(id){ mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
   function makePlayer(id,name,si,kind,gun){
     const s=spawnPoint(); const wpn=gun||selectedGun||"pistol";
-    return { id,name,kind,skin:SKINS[si%SKINS.length],skinI:si%SKINS.length, x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0,walk:0,bob:0,grounded:false, hp:100,maxHp:100,jet:100,weapon:wpn,ammo:GUN[wpn].ammo,nades:2, kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0} };
+    return { id,name,kind,skin:SKINS[si%SKINS.length],skinI:si%SKINS.length, x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0,walk:0,bob:0,grounded:false, hp:100,maxHp:100,jet:100,weapon:wpn,ammo:9999,nades:2, kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0} };
   }
   function resetWorld(list){
     useMap(selectedMap); players=list; bullets=[]; nades=[]; particles=[]; flashes=[];
@@ -102,8 +102,8 @@
   function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-p.y,w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
   function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-p.y,t.x-p.x); }
   function fire(p){
-    const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0||p.ammo<=0) return;
-    p.fireCd=g.cd; p.ammo-=g.take; if(window.SFX) SFX.shoot(p.weapon);
+    const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0) return;
+    p.fireCd=g.cd; if(window.SFX) SFX.shoot(p.weapon);
     const base=p.aim||0;
     flashes.push({x:p.x+Math.cos(base)*42,y:p.y+Math.sin(base)*16,a:base,life:8,max:8});
     for(let i=0;i<g.n;i++){
@@ -114,9 +114,9 @@
   function throwNade(p){ if(p.nadeCd>0||p.nades<=0) return; p.nades--; p.nadeCd=56; const a=p.aim||(p.dir>0?-0.4:Math.PI+0.4); nades.push({x:p.x,y:p.y,vx:Math.cos(a)*5.5,vy:Math.sin(a)*5.5-2.2,owner:p.id,fuse:78}); }
   function explode(x,y,owner,r,dmg){ if(window.SFX) SFX.boom(); for(let i=0;i<16;i++) particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:18,c:"#ffb020"}); for(const p of players){ if(!p.alive) continue; const d=Math.hypot(p.x-x,p.y-y); if(d<r) hurt(p,dmg*(1-d/r),owner); } }
   function hurt(p,dmg,owner){ p.hp-=dmg; if(window.SFX) SFX.hit(); if(p.hp<=0){ p.hp=0; p.alive=false; p.deaths++; p.respawn=90; const k=players.find(o=>o.id===owner); if(k&&k.id!==p.id) k.kills++; if(window.SFX) SFX.die(); } }
-  function cycleGun(p){ const i=GUNS.indexOf(p.weapon); p.weapon=GUNS[(i+1)%GUNS.length]; p.ammo=GUN[p.weapon].ammo; }
+  function cycleGun(p){ const i=GUNS.indexOf(p.weapon); p.weapon=GUNS[(i+1)%GUNS.length]; p.ammo=9999; }
   function stepPlayer(p){
-    if(!p.alive){ p.respawn--; if(p.respawn<=0){ const s=spawnPoint(); Object.assign(p,{x:s.x,y:s.y,vx:0,vy:0,hp:p.maxHp||100,jet:100,ammo:GUN[p.weapon].ammo,nades:2,alive:true}); } return; }
+    if(!p.alive){ p.respawn--; if(p.respawn<=0){ const s=spawnPoint(); Object.assign(p,{x:s.x,y:s.y,vx:0,vy:0,hp:p.maxHp||100,jet:100,ammo:9999,nades:2,alive:true}); } return; }
     const moving = p.input.l||p.input.r;
     if(p.input.l){ p.vx-=MOVE; }
     if(p.input.r){ p.vx+=MOVE; }
@@ -135,7 +135,7 @@
     if(p.input.fire) fire(p); if(p.input.nade) throwNade(p);
     if(p.input.swap){ cycleGun(p); p.input.swap=0; }
     if(p.kind==="human") p.dir = Math.cos(p.aim||0)>=0?1:-1;
-    for(const pk of pickups){ if(pk.tmr>0){ pk.tmr--; continue; } if(Math.hypot(pk.x-p.x,pk.y-p.y)<30){ if(pk.t==="health") p.hp=Math.min(p.maxHp||100,p.hp+45); if(GUN[pk.t]){ p.weapon=pk.t; p.ammo=GUN[pk.t].ammo; } pk.tmr=380; if(window.SFX) SFX.pickup(); } }
+    for(const pk of pickups){ if(pk.tmr>0){ pk.tmr--; continue; } if(Math.hypot(pk.x-p.x,pk.y-p.y)<30){ if(pk.t==="health") p.hp=Math.min(p.maxHp||100,p.hp+45); if(GUN[pk.t]){ p.weapon=pk.t; p.ammo=9999; } pk.tmr=380; if(window.SFX) SFX.pickup(); } }
   }
   function stepWorld(){
     tick++;
@@ -191,7 +191,7 @@
     ctx.fillStyle=hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(42,34,160*(hp/100),8);
     ctx.fillStyle="#ffb020"; ctx.fillRect(42,46,160*(jet/100),6);
     ctx.fillStyle="#fff"; ctx.font="12px sans-serif";
-    ctx.fillText(me.weapon.toUpperCase()+"  "+Math.max(0,me.ammo)+"   JET "+jet, 16, 78);
+    ctx.fillText(me.weapon.toUpperCase()+"  UNLIM   JET "+jet, 16, 78);
     const left=Math.max(0,MATCH_MS-(performance.now()-startAt));
     ctx.textAlign="right"; ctx.fillText((left/1000|0)+"s", VW-12, 18);
   }
