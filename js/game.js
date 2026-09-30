@@ -315,18 +315,18 @@
   const lobbyStatusEl=document.getElementById("lobbyStatus");
   const lobbyListEl=document.getElementById("lobbyList");
   const PEER_CFG={ config:{ iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}] } };
-  const LIVE_ID="swhenlive";
+  const MAXP=5, ROOMS=6;
+  function liveId(n){ return "swhenq"+n; }
   function renderLobby(){
     if(!lobbyListEl) return;
-    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>"+(i===0?"HOST":"P"+(i+1))+" — "+p.name+(p.ready?"  ✓ READY":"  …")+"</li>").join("")||"<li>Looking...</li>";
-    if(lobbyCodeEl) lobbyCodeEl.textContent="LIVE";
-    if(lobbyStatusEl && !lobbyStatusEl.dataset.lock)
-      lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for players...":lobbyRoster.length+" in lobby";
+    lobbyListEl.innerHTML=lobbyRoster.map((p,i)=>"<li>P"+(i+1)+" — "+p.name+(p.ready?"  ✓ READY":"  …")+"</li>").join("")||"<li>Finding room...</li>";
+    if(lobbyCodeEl) lobbyCodeEl.textContent="ROOM "+((net&&net.slot!=null)?(net.slot+1):"—")+"  "+lobbyRoster.length+"/"+MAXP;
+    if(lobbyStatusEl) lobbyStatusEl.textContent=lobbyRoster.length<2?"Waiting for players...":"Tap READY when set";
   }
   function showLobby(msg){
     menu.classList.add("hidden"); if(end) end.classList.add("hidden");
     lobbyEl.classList.remove("hidden");
-    if(msg&&lobbyStatusEl){ lobbyStatusEl.textContent=msg; lobbyStatusEl.dataset.lock=msg?"":""; }
+    if(msg&&lobbyStatusEl) lobbyStatusEl.textContent=msg;
     renderLobby();
   }
   function hideLobby(){ if(lobbyEl) lobbyEl.classList.add("hidden"); }
@@ -334,7 +334,7 @@
   function leaveLobby(){
     hideLobby(); menu.classList.remove("hidden"); mode="menu";
     if(net&&net.peer) try{net.peer.destroy();}catch(e){}
-    net=null; lobbyRoster=[]; players=[];
+    net=null; lobbyRoster=[]; players=[]; counting=false;
   }
   function beginMatch(){
     if(mode==="play") return;
@@ -344,83 +344,18 @@
       sendAll({t:"start"}); sendAll({t:"snap",snap:serialize()});
     }
   }
-  function attachHost(conn){
-    if(!net.conns.includes(conn)) net.conns.push(conn);
-    conn.on("data",msg=>{
-      if(msg.t==="hello"&&lobbyRoster.length<8&&!lobbyRoster.find(p=>p.id===msg.id)){
-        lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
-        renderLobby();
-        sendAll({t:"lobby",roster:lobbyRoster});
-        if(mode==="play"){
-          if(!players.find(p=>p.id===msg.id)) players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
-          try{ conn.send({t:"snap",snap:serialize()}); }catch(e){}
-        }
-      }
-      if(msg.t==="ready") markReady(msg.id);
-      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
-    });
-  }
-  function hostLive(name){
-    const peer=new Peer(LIVE_ID, PEER_CFG);
-    net={role:"host",code:"LIVE",peer,conns:[]}; youId="p1"; localTwo=false;
-    lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
-    showLobby("You are host. Waiting for players...");
-    renderLobby();
-    peer.on("open",()=>showLobby("Host ready. Waiting for players..."));
-    peer.on("connection",attachHost);
-    peer.on("error",err=>{
-      const t=String((err&&err.type)||err||"");
-      try{ peer.destroy(); }catch(e){}
-      if(/unavail|taken|exists/i.test(t) || true) joinLive(name);
-    });
-  }
-  function joinLive(name){
-    const my=uid();
-    const peer=new Peer(PEER_CFG);
-    net={role:"client",code:"LIVE",peer,hostConn:null}; youId=my; localTwo=false;
-    lobbyRoster=[];
-    showLobby("Host found? Joining...");
-    const tmo=setTimeout(()=>{
-      if(mode!=="play" && !(net&&net.hostConn&&net.hostOpen)){
-        try{ peer.destroy(); }catch(e){}
-        hostLive(name);
-      }
-    }, 3500);
-    peer.on("open",()=>{
-      const conn=peer.connect(LIVE_ID,{reliable:true});
-      net.hostConn=conn;
-      conn.on("open",()=>{
-        net.hostOpen=true;
-        conn.send({t:"hello",id:my,name,gun:selectedGun});
-        showLobby("In lobby. Waiting for others...");
-      });
-      conn.on("data",msg=>{
-        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; renderLobby(); showLobby("In lobby — tap READY"); }
-        if(msg.t==="count") showCount(msg.n);
-        if(msg.t==="start"||msg.t==="snap"){
-          clearTimeout(tmo);
-          hideLobby();
-          if(msg.snap) applySnap(msg.snap);
-          mode="play"; menu.classList.add("hidden"); goFs();
-          if(window.SFX){ SFX.boot(); SFX.start(); }
-        }
-      });
-    });
-    peer.on("error",()=>{});
-  }
   let counting=false;
   function allReady(){ return lobbyRoster.length>=2 && lobbyRoster.every(p=>p.ready); }
   function markReady(id){
     const p=lobbyRoster.find(x=>x.id===id); if(p) p.ready=true;
     renderLobby();
     if(net&&net.role==="host"){
-      sendAll({t:"lobby",roster:lobbyRoster});
+      sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
       if(allReady()&&!counting) startCountdown();
     }
   }
   function startCountdown(){
-    counting=true;
-    let n=3;
+    counting=true; let n=3;
     const tick=()=>{
       sendAll({t:"count",n});
       showCount(n);
@@ -431,21 +366,80 @@
   }
   function showCount(n){
     const el=document.getElementById("countDown");
-    if(!el) return;
-    el.classList.remove("hidden");
-    el.textContent = n<=0 ? "GO" : String(n);
-    if(lobbyStatusEl) lobbyStatusEl.textContent = n<=0 ? "Starting..." : "All ready — "+n;
+    if(el){ el.classList.remove("hidden"); el.textContent=n<=0?"GO":String(n); }
+    if(lobbyStatusEl) lobbyStatusEl.textContent=n<=0?"Starting...":"Starting in "+n;
   }
   function iAmReady(){
-    const id=youId;
-    if(net&&net.role==="host") markReady(id);
-    else if(net&&net.hostConn){ try{ net.hostConn.send({t:"ready",id}); }catch(e){} markReady(id); }
+    if(net&&net.role==="host") markReady(youId);
+    else if(net&&net.hostConn){ try{ net.hostConn.send({t:"ready",id:youId}); }catch(e){} markReady(youId); }
+  }
+  function attachHost(conn){
+    if(!net.conns.includes(conn)) net.conns.push(conn);
+    conn.on("data",msg=>{
+      if(msg.t==="hello"){
+        if(lobbyRoster.length>=MAXP){ try{ conn.send({t:"full"}); }catch(e){} return; }
+        if(!lobbyRoster.find(p=>p.id===msg.id)){
+          lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
+          renderLobby();
+          sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
+          if(mode==="play"&&!players.find(p=>p.id===msg.id))
+            players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
+          try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){}
+        }
+      }
+      if(msg.t==="ready") markReady(msg.id);
+      if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; }
+    });
+  }
+  function hostSlot(name, slot){
+    const peer=new Peer(liveId(slot), PEER_CFG);
+    net={role:"host",code:"R"+(slot+1),peer,conns:[],slot}; youId="p1"; localTwo=false;
+    lobbyRoster=[{id:"p1",name,gun:selectedGun,ready:false}];
+    showLobby("Room "+(slot+1)+" — waiting "+MAXP+" max");
+    peer.on("open",()=>renderLobby());
+    peer.on("connection",attachHost);
+    peer.on("error",()=>{ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); });
+  }
+  function joinSlot(name, slot, next){
+    const my=uid();
+    const peer=new Peer(PEER_CFG);
+    net={role:"client",code:"R"+(slot+1),peer,hostConn:null,slot}; youId=my; localTwo=false;
+    showLobby("Checking room "+(slot+1)+"...");
+    let opened=false;
+    const fail=setTimeout(()=>{ if(!opened){ try{peer.destroy();}catch(e){} next(); } }, 2200);
+    peer.on("open",()=>{
+      const conn=peer.connect(liveId(slot),{reliable:true});
+      net.hostConn=conn;
+      conn.on("open",()=>{
+        opened=true; clearTimeout(fail);
+        conn.send({t:"hello",id:my,name,gun:selectedGun});
+        showLobby("In room "+(slot+1));
+      });
+      conn.on("data",msg=>{
+        if(msg.t==="full"){ try{peer.destroy();}catch(e){} next(); return; }
+        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; renderLobby(); }
+        if(msg.t==="count") showCount(msg.n);
+        if(msg.t==="start"||msg.t==="snap"){
+          hideLobby();
+          if(msg.snap) applySnap(msg.snap);
+          mode="play"; menu.classList.add("hidden"); goFs();
+          if(window.SFX){ SFX.boot(); SFX.start(); }
+        }
+      });
+      conn.on("error",()=>{ clearTimeout(fail); try{peer.destroy();}catch(e){} next(); });
+    });
+    peer.on("error",()=>{ clearTimeout(fail); try{peer.destroy();}catch(e){} next(); });
+  }
+  function quickJoin(name, slot){
+    slot=slot||0;
+    if(slot>=ROOMS){ hostSlot(name,0); return; }
+    showLobby("Quick match...");
+    joinSlot(name, slot, ()=>hostSlot(name, slot));
   }
   function playNow(){
-    if(typeof Peer==="undefined"){ alert("Online failed to load"); return; }
+    if(typeof Peer==="undefined"){ alert("Online failed"); return; }
     const name=(nameInput.value||"PLAYER").toUpperCase();
-    showLobby("Checking for a host...");
-    joinLive(name);
+    quickJoin(name,0);
   }
   function joinOnline(){ playNow(); }
 
