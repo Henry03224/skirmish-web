@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#070b10" />
   <title>Skirmish Web</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -17,15 +15,15 @@
       <div id="menu" class="overlay">
         <div class="panel">
           <h1>SKIRMISH</h1>
-          <p class="sub">Wide camera. Pick a map. Sniper / SMG / shotgun.</p>
+          <p class="sub">Canyon arena. Helmet troopers. Sniper / SMG / shotgun.</p>
           <label>Callsign
             <input id="nameInput" maxlength="12" placeholder="PLAYER" autocomplete="off" />
           </label>
           <p class="label">Map</p>
           <div id="mapPick" class="maps">
-            <button type="button" class="mapcard on" data-map="warehouse">Warehouse</button>
+            <button type="button" class="mapcard" data-map="warehouse">Warehouse</button>
             <button type="button" class="mapcard" data-map="ruins">Ruins</button>
-            <button type="button" class="mapcard" data-map="desert">Desert</button>
+            <button type="button" class="mapcard on" data-map="desert">Desert Canyon</button>
           </div>
           <p class="label">Loadout</p>
           <div id="gunPick" class="maps">
@@ -34,9 +32,7 @@
             <button type="button" class="mapcard" data-gun="shot">Shotgun</button>
             <button type="button" class="mapcard" data-gun="sniper">Sniper</button>
           </div>
-          <div class="row">
-            <button id="btnSolo">Play vs Bots</button>
-          </div>
+          <div class="row"><button id="btnSolo">Play vs Bots</button></div>
           <div class="row">
             <button id="btnLocal" class="ghost">2P Same Screen</button>
             <button id="btnHost" class="ghost">Host Room</button>
@@ -45,7 +41,7 @@
             <input id="roomInput" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
             <button id="btnJoin" class="ghost">Join</button>
           </div>
-          <p class="hint">Left stick move · right stick aim/fire · JET / NADE / GUN. Camera zoomed out + mini-map.</p>
+          <p class="hint">Left stick move · right stick aim/fire · JET / NADE / GUN.</p>
         </div>
       </div>
       <div id="end" class="overlay hidden">
