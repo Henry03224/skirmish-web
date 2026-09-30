@@ -29,25 +29,16 @@
   Object.keys(fxSrc).forEach(k=>{ const im=new Image(); im.onload=()=>{ fxImg[k]=im; }; im.src=fxSrc[k]; });
   const spriteImgs = SKINS.map(()=>null);
   SKINS.forEach((sk,i)=>{ const im=new Image(); im.onload=()=>{ spriteImgs[i]=im; }; im.src=sk.img; });
-  const FORT = [
-    {x:64,y:864,w:1792,h:28},
-    {x:64,y:302,w:448,h:16},{x:70,y:432,w:134,h:14},{x:230,y:432,w:122,h:14},{x:378,y:432,w:109,h:14},
-    {x:70,y:605,w:410,h:16},{x:512,y:778,w:890,h:16},
-    {x:883,y:173,w:147,h:14},{x:787,y:216,w:339,h:14},{x:787,y:346,w:339,h:14},{x:787,y:605,w:320,h:14},{x:755,y:734,w:403,h:14},
-    {x:1402,y:302,w:442,h:16},{x:1427,y:432,w:109,h:14},{x:1562,y:432,w:122,h:14},{x:1709,y:432,w:134,h:14},
-    {x:1427,y:605,w:422,h:16}
-  ];
-  const WALLS = window.FORT_WALLS || FORT;
-  const FSPAWN = [{x:180,y:280},{x:1740,y:280},{x:960,y:150},{x:220,y:840},{x:1700,y:840},{x:960,y:580}];
-  const MAPS = { warehouse:{plats:FORT,spawns:FSPAWN}, ruins:{plats:FORT,spawns:FSPAWN}, desert:{plats:FORT,spawns:FSPAWN} };
+  const MAPS = window.MAP_PACK || {};
+  let WALLS = (MAPS.canyon&&MAPS.canyon.walls) || [];
   const bgImgs = {};
   function loadBgs(){
     const src = window.MAP_IMAGES || {};
     Object.keys(MAPS).forEach(k=>{ const im=new Image(); im.onload=()=>{ bgImgs[k]=im; }; if(src[k]) im.src=src[k]; });
   }
   loadBgs();
-  let selectedMap="desert", selectedGun="pistol";
-  let MAP = MAPS.desert.plats, SPAWNS = MAPS.desert.spawns, mapId="desert";
+  let selectedMap="canyon", selectedGun="pistol";
+  let MAP = (MAPS.canyon&&MAPS.canyon.plats)||[], SPAWNS = (MAPS.canyon&&MAPS.canyon.spawns)||[], mapId="canyon";
   document.querySelectorAll("#mapPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#mapPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedMap=b.dataset.map; }; });
   document.querySelectorAll("#gunPick .mapcard").forEach(b=>{ b.onclick=()=>{ document.querySelectorAll("#gunPick .mapcard").forEach(x=>x.classList.remove("on")); b.classList.add("on"); selectedGun=b.dataset.gun; }; });
   const keys = {}; const sticks = { l:{dx:0,dy:0,on:0}, r:{dx:0,dy:0,on:0} };
@@ -75,14 +66,15 @@
   function wx(x){ const c=cam(); return c.ox+x*c.sc; }
   function wy(y){ const c=cam(); return c.oy+y*c.sc; }
   function onScreen(x,y,pad){ pad=pad||80; const sx=wx(x),sy=wy(y); return sx>-pad&&sy>-pad&&sx<VW+pad&&sy<VH+pad; }
-  function useMap(id){ mapId=MAPS[id]?id:"desert"; MAP=MAPS[mapId].plats; SPAWNS=MAPS[mapId].spawns; }
+  function useMap(id){ mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
   function makePlayer(id,name,si,kind,gun){
     const s=spawnPoint(); const wpn=gun||selectedGun||"pistol";
     return { id,name,kind,skin:SKINS[si%SKINS.length],skinI:si%SKINS.length, x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0,walk:0,bob:0,grounded:false, hp:100,maxHp:100,jet:100,weapon:wpn,ammo:GUN[wpn].ammo,nades:2, kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0} };
   }
   function resetWorld(list){
     useMap(selectedMap); players=list; bullets=[]; nades=[]; particles=[]; flashes=[];
-    pickups=[{x:960,y:346,t:"sniper",tmr:0},{x:180,y:302,t:"smg",tmr:0},{x:1740,y:302,t:"shot",tmr:0},{x:960,y:778,t:"health",tmr:0}];
+    const mid=SPAWNS[2]||{x:960,y:500};
+    pickups=[{x:mid.x,y:mid.y-20,t:"sniper",tmr:0},{x:(SPAWNS[0]||mid).x,y:(SPAWNS[0]||mid).y-20,t:"smg",tmr:0},{x:(SPAWNS[1]||mid).x,y:(SPAWNS[1]||mid).y-20,t:"shot",tmr:0},{x:960,y:1000,t:"health",tmr:0}];
     startAt=performance.now(); winner=null; mode="play"; menu.classList.add("hidden"); end.classList.add("hidden"); goFs();
   }
   function startSolo(){ const name=(nameInput.value||"PLAYER").toUpperCase(); const list=[makePlayer("p1",name,0,"human",selectedGun)]; const bots=["smg","shot","sniper","pistol"]; for(let i=0;i<4;i++) list.push(makePlayer("bot"+i,"BOT "+(i+1),i+1,"bot",bots[i])); youId="p1"; localTwo=false; net=null; resetWorld(list); }
