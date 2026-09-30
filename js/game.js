@@ -360,6 +360,8 @@
     }).join("")||"<li>Finding soldiers...</li>";
     if(lobbyCodeEl) lobbyCodeEl.textContent="ROOM "+((net&&net.slot!=null)?(net.slot+1):"1")+"  "+lobbyRoster.length+"/"+MAXP;
     if(lobbyStatusEl) lobbyStatusEl.innerHTML=lobbyRoster.length<2?"SELECTING A SERVER<br>ACQUIRING A LOBBY":"LOBBY READY<br>TAP READY";
+    const cd=document.getElementById("countDown");
+    if(cd && !counting) cd.classList.add("hidden");
   }
   function showLobby(msg){
     menu.classList.add("hidden"); if(end) end.classList.add("hidden");
@@ -369,10 +371,19 @@
   }
   function hideLobby(){ if(lobbyEl) lobbyEl.classList.add("hidden"); }
   function sendAll(msg){ if(!net||!net.conns) return; net.conns.forEach(c=>{ try{c.send(msg);}catch(e){} }); }
+  function dropPlayer(id){
+    lobbyRoster=lobbyRoster.filter(p=>p.id!==id);
+    players=players.filter(p=>p.id!==id);
+    counting=false;
+    renderLobby();
+    if(net&&net.role==="host") sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
+  }
   function leaveLobby(){
+    try{ if(net&&net.role==="client"&&net.hostConn) net.hostConn.send({t:"leave",id:youId}); }catch(e){}
     hideLobby(); menu.classList.remove("hidden"); mode="menu";
     if(net&&net.peer) try{net.peer.destroy();}catch(e){}
     net=null; lobbyRoster=[]; players=[]; counting=false;
+    const cd=document.getElementById("countDown"); if(cd) cd.classList.add("hidden");
   }
   function beginMatch(){
     if(mode==="play") return;
@@ -413,10 +424,14 @@
   }
   function attachHost(conn){
     if(!net.conns.includes(conn)) net.conns.push(conn);
+    conn.on("close",()=>{ if(conn.pid) dropPlayer(conn.pid); net.conns=net.conns.filter(c=>c!==conn); });
     conn.on("data",msg=>{
+      if(msg.t==="leave"){ dropPlayer(msg.id); return; }
       if(msg.t==="hello"){
+        if(msg.probe){ try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){} return; }
         if(lobbyRoster.length>=MAXP){ try{ conn.send({t:"full"}); }catch(e){} return; }
         if(!lobbyRoster.find(p=>p.id===msg.id)){
+          conn.pid=msg.id;
           lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
           renderLobby();
           sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
@@ -455,7 +470,7 @@
       });
       conn.on("data",msg=>{
         if(msg.t==="full"){ try{peer.destroy();}catch(e){} quickJoin(name, slot+1); return; }
-        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; renderLobby(); }
+        if(msg.t==="lobby"){ lobbyRoster=msg.roster||lobbyRoster; if(msg.slot!=null) net.slot=msg.slot; counting=false; renderLobby(); }
         if(msg.t==="count") showCount(msg.n);
         if(msg.t==="start"||msg.t==="snap"){
           hideLobby();
@@ -474,6 +489,27 @@
     showLobby("Quick match...");
     joinSlot(name, slot, ()=>hostSlot(name, slot));
   }
+  function tryMerge(){
+    if(!net || mode==="play" || counting) return;
+    if(net.slot===0 || lobbyRoster.length>=MAXP) return;
+    const name=(nameInput&&nameInput.value||"PLAYER").toUpperCase();
+    const probe=new Peer(PEER_CFG);
+    const t=setTimeout(()=>{ try{probe.destroy();}catch(e){} },1800);
+    probe.on("open",()=>{
+      const c=probe.connect(liveId(0),{reliable:true});
+      c.on("open",()=>c.send({t:"hello",id:"probe"+uid(),name:"?",gun:"pistol",probe:1}));
+      c.on("data",msg=>{
+        if(msg.t==="lobby" && (msg.roster||[]).length<MAXP && (msg.roster||[]).length>lobbyRoster.length){
+          clearTimeout(t); try{probe.destroy();}catch(e){}
+          const keep=name;
+          leaveLobby();
+          setTimeout(()=>joinSlot(keep,0,()=>hostSlot(keep,0)),300);
+        }
+        if(msg.t==="full"){ clearTimeout(t); try{probe.destroy();}catch(e){} }
+      });
+    });
+  }
+  setInterval(tryMerge, 4000);
   function playNow(){
     if(typeof Peer==="undefined"){ alert("Online failed"); return; }
     const name=(nameInput.value||"PLAYER").toUpperCase();
