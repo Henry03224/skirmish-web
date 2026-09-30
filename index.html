@@ -16,18 +16,22 @@
       <div id="menu" class="overlay">
         <div class="panel intro">
           <h1>SKIRMISH</h1>
-          <p class="sub">Online arena</p>
+          <p class="sub">Online</p>
           <label>Callsign
             <input id="nameInput" maxlength="12" placeholder="PLAYER" autocomplete="off" />
           </label>
-          <div class="row"><button id="btnPlay">PLAY</button></div>
+          <div class="row"><button id="btnPlay">PLAY / HOST</button></div>
+          <div class="row join">
+            <input id="roomInput" maxlength="6" placeholder="CODE" autocomplete="off" />
+            <button id="btnJoin" class="ghost">JOIN</button>
+          </div>
           <div class="row"><button id="btnSolo" class="ghost">Solo vs Bots</button></div>
         </div>
       </div>
       <div id="lobby" class="overlay hidden">
         <div class="panel">
-          <h1>ARENA</h1>
-          <p id="lobbyCode" class="code">PUBLIC</p>
+          <h1>ROOM</h1>
+          <p id="lobbyCode" class="code">----</p>
           <p id="lobbyStatus" class="sub">Connecting...</p>
           <ul id="lobbyList" class="lobby-list"></ul>
           <div class="row"><button id="btnLeave" class="ghost">Leave</button></div>
