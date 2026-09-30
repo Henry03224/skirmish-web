@@ -71,7 +71,7 @@
   function wx(x){ const c=camCache; return c.ox+x*c.sc; }
   function wy(y){ const c=camCache; return c.oy+y*c.sc; }
   function onScreen(x,y,pad){ pad=pad||80; const sx=wx(x),sy=wy(y); return sx>-pad&&sy>-pad&&sx<VW+pad&&sy<VH+pad; }
-  function useMap(id){ mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
+  function useMap(id){ mapCache=null; mapCacheId="";  mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
   function hearDist(x,y){ const lis=players.find(o=>o.id===youId); return lis?Math.hypot(x-lis.x,y-lis.y):0; }
   function gunLen(p){ return p.weapon==="sniper"?38:p.weapon==="shot"?32:p.weapon==="smg"?28:26; }
   function muzzleOf(p){
@@ -309,11 +309,24 @@
       ctx.restore();
     }
   }
+
+  function ensureMapCache(){
+    if(mapCache && mapCacheId===mapId) return mapCache;
+    const cv=document.createElement("canvas");
+    cv.width=WW; cv.height=WH;
+    const x=cv.getContext("2d");
+    if(bgImgs[mapId]) x.drawImage(bgImgs[mapId],0,0,WW,WH);
+    else { x.fillStyle="#111"; x.fillRect(0,0,WW,WH); }
+    mapCache=cv; mapCacheId=mapId;
+    return cv;
+  }
   function draw(){
     updateCam();
     ctx.clearRect(0,0,VW,VH); ctx.fillStyle="#050608"; ctx.fillRect(0,0,VW,VH); const c=cam();
-    if(bgImgs[mapId]) ctx.drawImage(bgImgs[mapId], c.ox,c.oy,WW*c.sc,WH*c.sc);
-    else { ctx.fillStyle="#111"; ctx.fillRect(c.ox,c.oy,WW*c.sc,WH*c.sc); }
+    const mc=ensureMapCache();
+    const sx=clamp(-c.ox/c.sc,0,WW), sy=clamp(-c.oy/c.sc,0,WH);
+    const sw=Math.min(VW/c.sc,WW-sx), sh=Math.min(VH/c.sc,WH-sy);
+    ctx.drawImage(mc, sx,sy,sw,sh, c.ox+sx*c.sc, c.oy+sy*c.sc, sw*c.sc, sh*c.sc);
     for(const p of players) if(p.alive) drawSoldier(p);
     for(const pk of pickups){
       if(pk.tmr>0||!onScreen(pk.x,pk.y,20)) continue;
@@ -359,7 +372,7 @@
     if(me){ if(savedIn) me.input=savedIn; if(savedAim!=null) me.aim=savedAim; }
     if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); if(window.SFX) SFX.win(); }
   }
-  let snapT=0, inT=0, pingMs=0, pingAt=0;
+  let snapT=0, inT=0, pingMs=0, pingAt=0, mapCache=null, mapCacheId="";
   function loop(){
     requestAnimationFrame(loop);
     const me=players.find(p=>p.id===youId);
