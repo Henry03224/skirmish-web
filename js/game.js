@@ -98,7 +98,7 @@
   function startLocal(){ resetWorld([makePlayer("p1",(nameInput.value||"P1").toUpperCase(),0,"human",selectedGun), makePlayer("p2","P2",1,"human","smg"), makePlayer("bot0","BOT 1",2,"bot","sniper"), makePlayer("bot1","BOT 2",3,"bot","shot")]); youId="p1"; localTwo=true; net=null; }
   function platHit(p){ for(const m of MAP){ if(p.x>m.x && p.x<m.x+m.w && p.y+18>m.y && p.y+18<m.y+m.h+18 && p.vy>=0){ p.y=m.y-18; p.vy=0; return true; } } return false; }
   function screenToWorld(sx,sy){ const c=cam(); return {x:(sx-c.ox)/c.sc, y:(sy-c.oy)/c.sc}; }
-  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||sticks.r.on?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-p.y,w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
+  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-p.y,w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
   function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-p.y,t.x-p.x); }
   function fire(p){
     const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0||p.ammo<=0) return;
@@ -235,13 +235,41 @@
   function roomCode(){ const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<5;i++) s+=a[(Math.random()*a.length)|0]; return s; }
   function hostOnline(){ if(typeof Peer==="undefined"){ alert("PeerJS failed"); return; } const code=roomCode(), name=(nameInput.value||"HOST").toUpperCase(); const peer=new Peer("skirmish-"+code); net={role:"host",code,peer,conns:[]}; youId="p1"; localTwo=false; peer.on("open",()=>resetWorld([makePlayer("p1",name,0,"human",selectedGun)])); peer.on("connection",conn=>{ net.conns.push(conn); conn.on("data",msg=>{ if(msg.t==="hello"&&players.length<6) players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol")); if(msg.t==="in"){ const p=players.find(x=>x.id===msg.id); if(p) p.input=msg.input; } }); }); }
   function joinOnline(){ if(typeof Peer==="undefined") return; const code=(roomInput.value||"").toUpperCase().replace(/[^A-Z0-9]/g,""); if(code.length<4) return; const name=(nameInput.value||"GUEST").toUpperCase(), my=uid(); const peer=new Peer(); net={role:"client",code,peer,hostConn:null}; youId=my; localTwo=false; peer.on("open",()=>{ const conn=peer.connect("skirmish-"+code); net.hostConn=conn; conn.on("open",()=>{ conn.send({t:"hello",id:my,name,gun:selectedGun}); menu.classList.add("hidden"); mode="play"; goFs(); }); conn.on("data",msg=>{ if(msg.t==="snap") applySnap(msg.snap); }); }); }
-  function bindStick(el, side){ const set=(ev)=>{ const t=ev.touches?ev.touches[0]:ev; const r=el.getBoundingClientRect(); const dx=(t.clientX-(r.left+r.width/2))/(r.width/2); const dy=(t.clientY-(r.top+r.height/2))/(r.height/2); sticks[side].dx=clamp(dx,-1,1); sticks[side].dy=clamp(dy,-1,1); sticks[side].on=1; el.querySelector("i").style.transform=`translate(${sticks[side].dx*28}px,${sticks[side].dy*28}px)`; }; const up=()=>{ sticks[side].dx=sticks[side].dy=sticks[side].on=0; el.querySelector("i").style.transform=""; }; el.addEventListener("touchstart",e=>{e.preventDefault();set(e);},{passive:false}); el.addEventListener("touchmove",e=>{e.preventDefault();set(e);},{passive:false}); el.addEventListener("touchend",up); }
+  function bindStick(el, side){
+    let pid=null;
+    const set=(ev)=>{
+      const r=el.getBoundingClientRect();
+      const dx=(ev.clientX-(r.left+r.width/2))/(r.width/2);
+      const dy=(ev.clientY-(r.top+r.height/2))/(r.height/2);
+      sticks[side].dx=clamp(dx,-1,1);
+      sticks[side].dy=clamp(dy,-1,1);
+      sticks[side].on=1;
+      el.querySelector("i").style.transform=`translate(${sticks[side].dx*28}px,${sticks[side].dy*28}px)`;
+    };
+    const up=(ev)=>{
+      if(ev && pid!=null && ev.pointerId!==pid) return;
+      pid=null;
+      sticks[side].dx=sticks[side].dy=sticks[side].on=0;
+      el.querySelector("i").style.transform="";
+    };
+    el.addEventListener("pointerdown",e=>{ e.preventDefault(); e.stopPropagation(); pid=e.pointerId; try{el.setPointerCapture(e.pointerId);}catch(err){} set(e); });
+    el.addEventListener("pointermove",e=>{ if(pid!==e.pointerId) return; e.preventDefault(); e.stopPropagation(); set(e); });
+    el.addEventListener("pointerup",up);
+    el.addEventListener("pointercancel",up);
+  }
   bindStick(document.getElementById("stickL"),"l"); bindStick(document.getElementById("stickR"),"r");
-  document.querySelectorAll(".mid button").forEach(b=>{ const act=b.dataset.act; b.addEventListener("touchstart",e=>{ e.preventDefault(); const me=players.find(p=>p.id===youId); if(!me) return; if(act==="jump") me.input.jet=1; if(act==="nade") me.input.nade=1; if(act==="swap") me.input.swap=1; },{passive:false}); b.addEventListener("touchend",()=>{ const me=players.find(p=>p.id===youId); if(!me) return; if(act==="jump") me.input.jet=0; if(act==="nade") me.input.nade=0; }); });
+  document.querySelectorAll(".mid button").forEach(b=>{ const act=b.dataset.act; b.addEventListener("pointerdown",e=>{ e.preventDefault(); e.stopPropagation(); const me=players.find(p=>p.id===youId); if(!me) return; if(act==="jump") me.input.jet=1; if(act==="nade") me.input.nade=1; if(act==="swap") me.input.swap=1; }); b.addEventListener("pointerup",()=>{ const me=players.find(p=>p.id===youId); if(!me) return; if(act==="jump") me.input.jet=0; if(act==="nade") me.input.nade=0; }); });
   window.addEventListener("keydown",e=>{ keys[e.key.toLowerCase()]=true; }); window.addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; });
-  canvas.addEventListener("mousemove",e=>{ const r=canvas.getBoundingClientRect(); mouse.sx=e.clientX-r.left; mouse.sy=e.clientY-r.top; mouse.on=1; });
+  canvas.addEventListener("mousemove",e=>{
+    if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+    const r=canvas.getBoundingClientRect(); mouse.sx=e.clientX-r.left; mouse.sy=e.clientY-r.top; mouse.on=1;
+  });
   canvas.addEventListener("mouseleave",()=>{ mouse.on=0; });
-  canvas.addEventListener("mousedown",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=1; });
+  canvas.addEventListener("mousedown",e=>{
+    if(e.button!==0) return;
+    if(window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return;
+    const me=players.find(p=>p.id===youId); if(me) me.input.fire=1;
+  });
   canvas.addEventListener("mouseup",()=>{ const me=players.find(p=>p.id===youId); if(me) me.input.fire=0; });
   function goFs(){ const el=document.documentElement; const req=el.requestFullscreen||el.webkitRequestFullscreen; if(req) req.call(el).catch(()=>{}); if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{}); }
   document.getElementById("btnFs").onclick=goFs; document.getElementById("btnSolo").onclick=startSolo; document.getElementById("btnLocal").onclick=startLocal; document.getElementById("btnHost").onclick=hostOnline; document.getElementById("btnJoin").onclick=joinOnline;
