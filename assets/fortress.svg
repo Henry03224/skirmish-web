@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <rect width="1920" height="1080" fill="#050608"/>
+  <!-- left keep -->
+  <rect x="64" y="302" width="448" height="580" fill="#6e6a62"/>
+  <rect x="64" y="302" width="448" height="18" fill="#8a8680"/>
+  <rect x="90" y="360" width="120" height="90" fill="#2a2a28"/>
+  <rect x="240" y="360" width="110" height="90" fill="#2a2a28"/>
+  <rect x="380" y="360" width="100" height="90" fill="#2a2a28"/>
+  <rect x="90" y="500" width="380" height="80" fill="#5b574f"/>
+  <rect x="70" y="605" width="410" height="16" fill="#9a958c"/>
+  <rect x="100" y="650" width="140" height="70" fill="#2a2a28"/>
+  <rect x="300" y="650" width="140" height="70" fill="#2a2a28"/>
+  <!-- center tower -->
+  <rect x="787" y="216" width="339" height="660" fill="#7a7468"/>
+  <rect x="883" y="120" width="147" height="110" fill="#8d877c"/>
+  <rect x="883" y="120" width="147" height="14" fill="#a8a29a"/>
+  <rect x="900" y="150" width="36" height="40" fill="#1c1c1a"/>
+  <rect x="978" y="150" width="36" height="40" fill="#1c1c1a"/>
+  <rect x="787" y="216" width="339" height="14" fill="#a8a29a"/>
+  <rect x="820" y="250" width="80" height="50" fill="#2a2a28"/>
+  <rect x="1010" y="250" width="80" height="50" fill="#2a2a28"/>
+  <rect x="787" y="346" width="339" height="14" fill="#a8a29a"/>
+  <rect x="860" y="400" width="200" height="160" fill="#5b574f"/>
+  <rect x="787" y="605" width="320" height="14" fill="#a8a29a"/>
+  <rect x="755" y="734" width="403" height="14" fill="#b7b09f"/>
+  <!-- right keep -->
+  <rect x="1402" y="302" width="442" height="580" fill="#6e6a62"/>
+  <rect x="1402" y="302" width="442" height="18" fill="#8a8680"/>
+  <rect x="1427" y="360" width="109" height="90" fill="#2a2a28"/>
+  <rect x="1562" y="360" width="122" height="90" fill="#2a2a28"/>
+  <rect x="1709" y="360" width="134" height="90" fill="#2a2a28"/>
+  <rect x="1427" y="605" width="422" height="16" fill="#9a958c"/>
+  <rect x="1460" y="650" width="140" height="70" fill="#2a2a28"/>
+  <rect x="1660" y="650" width="140" height="70" fill="#2a2a28"/>
+  <!-- ground / wood-stone base -->
+  <rect x="512" y="778" width="890" height="16" fill="#b7b09f"/>
+  <rect x="64" y="864" width="1792" height="90" fill="#5a564c"/>
+  <rect x="64" y="864" width="1792" height="16" fill="#8f8a7c"/>
+  <rect x="200" y="900" width="200" height="20" fill="#3a3832"/>
+  <rect x="860" y="900" width="200" height="20" fill="#3a3832"/>
+  <rect x="1500" y="900" width="200" height="20" fill="#3a3832"/>
+</svg>
