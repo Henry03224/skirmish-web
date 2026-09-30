@@ -9,13 +9,15 @@
   const GRAV = 0.48, JET = 0.78, MOVE = 0.62, FRIC = 0.86, MAX_VX = 7.4, MAX_VY = 11;
   const MATCH_MS = 120000;
   const SKINS = [
-    { hair:"#2b1b14", outfit:"#3dff8a", accent:"#fff", eye:"#1a1a1a" },
-    { hair:"#8b1e3f", outfit:"#4db7ff", accent:"#ffe6f0", eye:"#1a1a1a" },
-    { hair:"#f2c14e", outfit:"#ff7ad9", accent:"#fff", eye:"#1a1a1a" },
-    { hair:"#16324f", outfit:"#ffb020", accent:"#fff3c4", eye:"#1a1a1a" },
-    { hair:"#111", outfit:"#ff4d4d", accent:"#fff", eye:"#1a1a1a" },
-    { hair:"#5b2c6f", outfit:"#c8ff4d", accent:"#fff", eye:"#1a1a1a" },
+    { hair:"#2b1b14", outfit:"#3dff8a", img:"assets/soldier_green.svg" },
+    { hair:"#8b1e3f", outfit:"#4db7ff", img:"assets/soldier_blue.svg" },
+    { hair:"#f2c14e", outfit:"#ff7ad9", img:"assets/soldier_pink.svg" },
+    { hair:"#16324f", outfit:"#ffb020", img:"assets/soldier_gold.svg" },
+    { hair:"#111", outfit:"#ff4d4d", img:"assets/soldier_red.svg" },
+    { hair:"#5b2c6f", outfit:"#c8ff4d", img:"assets/soldier_lime.svg" },
   ];
+  const spriteImgs = SKINS.map(()=>null);
+  SKINS.forEach((sk,i)=>{ const im=new Image(); im.onload=()=>{ spriteImgs[i]=im; }; im.src=sk.img; });
   const MAP = [
     { x:0,y:680,w:1280,h:40 }, { x:80,y:540,w:220,h:18 }, { x:980,y:540,w:220,h:18 },
     { x:430,y:470,w:420,h:18 }, { x:160,y:360,w:180,h:18 }, { x:940,y:360,w:180,h:18 },
@@ -44,7 +46,7 @@
   fit();
   function makePlayer(id,name,si,kind){
     const s = spawnPoint();
-    return { id,name,kind,skin:SKINS[si%SKINS.length], x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0, hp:100,jet:100,ammo:28,nades:2,weapon:"pistol", kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0} };
+    return { id,name,kind,skin:SKINS[si%SKINS.length],skinI:si%SKINS.length, x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0, hp:100,jet:100,ammo:28,nades:2,weapon:"pistol", kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0} };
   }
   function resetWorld(list){
     players=list; bullets=[]; nades=[]; particles=[];
@@ -174,32 +176,17 @@
   function wx(x){ return x*(VW/1280); }
   function wy(y){ return y*(VH/720); }
   function drawAnime(p){
-    const x=wx(p.x), y=wy(p.y), s=Math.min(VW/1280,VH/720)*1.25, sk=p.skin;
-    const aim = p.aim || (p.dir>0?0:Math.PI);
-    ctx.save(); ctx.translate(x,y); ctx.lineCap="round"; ctx.lineJoin="round";
-    ctx.fillStyle="#0005"; ctx.beginPath(); ctx.ellipse(0,20*s,8*s,2.2*s,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#2a3238"; ctx.fillRect(-11*s,2*s,5*s,10*s);
-    ctx.fillStyle="#5a6570"; ctx.fillRect(-10.2*s,3*s,3.4*s,4*s);
-    ctx.strokeStyle="#1c1c1c"; ctx.lineWidth=2.4*s;
-    const step = Math.sin((p.x+p.y)*0.25)*3*s;
-    ctx.beginPath(); ctx.moveTo(-2*s,8*s); ctx.lineTo(-5*s-step,19*s); ctx.moveTo(2*s,8*s); ctx.lineTo(5*s+step,19*s); ctx.stroke();
-    ctx.fillStyle="#222"; ctx.fillRect(-7*s-step,18*s,5*s,2.4*s); ctx.fillRect(3*s+step,18*s,5*s,2.4*s);
-    ctx.fillStyle=sk.outfit; ctx.fillRect(-5.5*s,-1*s,11*s,12*s);
-    ctx.fillStyle="#0004"; ctx.fillRect(-5.5*s,4*s,11*s,2*s);
-    ctx.save(); ctx.rotate(aim);
-    ctx.strokeStyle="#1c1c1c"; ctx.lineWidth=2.2*s;
-    ctx.beginPath(); ctx.moveTo(0,2*s); ctx.lineTo(10*s,2*s); ctx.stroke();
-    ctx.fillStyle="#2b2b2b"; ctx.fillRect(8*s,0.4*s,16*s,2.4*s); ctx.fillRect(21*s,-0.6*s,3.2*s,2.2*s);
-    ctx.fillStyle="#555"; ctx.fillRect(12*s,2.4*s,3*s,3*s);
+    const x=wx(p.x), y=wy(p.y), s=Math.min(VW/1280,VH/720)*1.35;
+    const im = spriteImgs[p.skinI];
+    const w=54*s, h=54*s;
+    ctx.save(); ctx.translate(x,y);
+    if((p.dir||1)<0) ctx.scale(-1,1);
+    if(im) ctx.drawImage(im, -w*0.42, -h*0.62, w, h);
+    else { ctx.fillStyle=p.skin.outfit; ctx.fillRect(-8*s,-4*s,16*s,20*s); }
     ctx.restore();
-    ctx.fillStyle="#e0b08a"; ctx.beginPath(); ctx.arc(0,-9*s,6.2*s,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=1.2*s; ctx.stroke();
-    ctx.fillStyle=sk.hair; ctx.beginPath(); ctx.arc(0,-11.2*s,6.2*s,Math.PI,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc((p.dir>=0?1.8:-1.8)*s,-9.2*s,1.05*s,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-    ctx.fillStyle="#0008"; ctx.fillRect(x-16,y-34*s,32,3.5);
-    ctx.fillStyle=p.hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(x-16,y-34*s,32*(p.hp/100),3.5);
-    ctx.fillStyle="#fff"; ctx.font=(10*s)+"px sans-serif"; ctx.textAlign="center"; ctx.fillText(p.name,x,y-40*s);
+    ctx.fillStyle="#0008"; ctx.fillRect(x-16,y-36*s,32,3.5);
+    ctx.fillStyle=p.hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(x-16,y-36*s,32*(p.hp/100),3.5);
+    ctx.fillStyle="#fff"; ctx.font=(10*s)+"px sans-serif"; ctx.textAlign="center"; ctx.fillText(p.name,x,y-42*s);
   }
   function draw(){
     ctx.clearRect(0,0,VW,VH);
@@ -224,6 +211,7 @@
   function serialize(){ return {startAt,players,bullets,nades,pickups,winner,mode}; }
   function applySnap(s){
     startAt=s.startAt; players=s.players; bullets=s.bullets; nades=s.nades; pickups=s.pickups; winner=s.winner;
+    players.forEach((p,i)=>{ if(p.skinI==null) p.skinI=i%SKINS.length; p.skin=SKINS[p.skinI]; });
     if(s.mode==="end"&&mode!=="end"){ mode="end"; document.getElementById("endTitle").textContent=(winner&&winner.name)+" wins"; end.classList.remove("hidden"); }
   }
   function loop(){
