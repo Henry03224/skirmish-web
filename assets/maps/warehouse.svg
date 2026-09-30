@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs><linearGradient id="skyw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2228"/><stop offset="1" stop-color="#2c3338"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#skyw)"/>
+  <rect x="0" y="980" width="1920" height="100" fill="#3a4046"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#2a2e32"/>
+  <rect x="60" y="860" width="420" height="24" fill="#6d7480"/>
+  <rect x="1440" y="860" width="420" height="24" fill="#6d7480"/>
+  <rect x="520" y="720" width="880" height="24" fill="#7a8290"/>
+  <rect x="120" y="600" width="280" height="20" fill="#6d7480"/>
+  <rect x="1520" y="600" width="280" height="20" fill="#6d7480"/>
+  <rect x="700" y="480" width="520" height="20" fill="#8a92a0"/>
+  <rect x="80" y="360" width="240" height="18" fill="#6d7480"/>
+  <rect x="1600" y="360" width="240" height="18" fill="#6d7480"/>
+  <rect x="820" y="240" width="280" height="16" fill="#9aa2b0"/>
+  <rect x="0" y="700" width="50" height="320" fill="#4a5058"/>
+  <rect x="1870" y="700" width="50" height="320" fill="#4a5058"/>
+</svg>

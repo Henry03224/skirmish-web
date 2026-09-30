@@ -36,9 +36,9 @@ button {
   padding:13px; border-radius:10px; font-size:15px;
 }
 button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
-.maps { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.maps { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
 .maps .mapcard {
-  flex:none; padding:10px 8px; font-size:12px; background:#0b1116; color:#dce;
+  flex:none; padding:10px 6px; font-size:11px; background:#0b1116; color:#dce;
   border:1px solid #334;
 }
 .maps .mapcard.on { border-color:var(--accent); color:#042; background:var(--accent); }

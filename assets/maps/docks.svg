@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs><linearGradient id="skyd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#163048"/><stop offset="0.6" stop-color="#1a4a68"/><stop offset="1" stop-color="#0e2a40"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#skyd)"/>
+  <rect x="0" y="960" width="1920" height="120" fill="#0a3048"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#5a3a22"/>
+  <rect x="40" y="860" width="500" height="22" fill="#8a6a40"/>
+  <rect x="1380" y="860" width="500" height="22" fill="#8a6a40"/>
+  <rect x="620" y="720" width="680" height="22" fill="#9a7a48"/>
+  <rect x="160" y="600" width="300" height="18" fill="#8a6a40"/>
+  <rect x="1460" y="600" width="300" height="18" fill="#8a6a40"/>
+  <rect x="720" y="460" width="480" height="18" fill="#b08a50"/>
+  <rect x="80" y="320" width="260" height="16" fill="#8a6a40"/>
+  <rect x="1580" y="320" width="260" height="16" fill="#8a6a40"/>
+  <rect x="820" y="200" width="280" height="16" fill="#c49a58"/>
+</svg>

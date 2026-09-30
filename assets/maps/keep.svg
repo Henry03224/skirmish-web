@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2a44"/><stop offset="1" stop-color="#3a2a22"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <rect x="0" y="860" width="1920" height="220" fill="#3d342c"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#2a241e"/>
+  <rect x="80" y="820" width="360" height="22" fill="#8a7a62"/>
+  <rect x="1480" y="820" width="360" height="22" fill="#8a7a62"/>
+  <rect x="620" y="700" width="680" height="22" fill="#9a8a70"/>
+  <rect x="200" y="540" width="300" height="20" fill="#8a7a62"/>
+  <rect x="1420" y="540" width="300" height="20" fill="#8a7a62"/>
+  <rect x="760" y="400" width="400" height="20" fill="#b09a78"/>
+  <rect x="80" y="280" width="260" height="18" fill="#8a7a62"/>
+  <rect x="1580" y="280" width="260" height="18" fill="#8a7a62"/>
+  <rect x="860" y="180" width="200" height="16" fill="#c4b08a"/>
+  <rect x="40" y="700" width="40" height="320" fill="#5a4e42"/>
+  <rect x="1840" y="700" width="40" height="320" fill="#5a4e42"/>
+  <rect x="900" y="400" width="40" height="300" fill="#6a5c4c"/>
+  <circle cx="280" cy="160" r="28" fill="#e8dcc0" opacity=".35"/>
+</svg>

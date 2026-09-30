@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs><linearGradient id="skyi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ec8e8"/><stop offset="1" stop-color="#d8eef8"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#skyi)"/>
+  <rect x="0" y="980" width="1920" height="100" fill="#c8dce8"/>
+  <rect x="0" y="1020" width="1920" height="60" fill="#9bb4c4"/>
+  <rect x="80" y="860" width="360" height="22" fill="#e8f4fa"/>
+  <rect x="1480" y="860" width="360" height="22" fill="#e8f4fa"/>
+  <rect x="560" y="720" width="800" height="22" fill="#d0e8f4"/>
+  <rect x="200" y="580" width="280" height="18" fill="#e8f4fa"/>
+  <rect x="1440" y="580" width="280" height="18" fill="#e8f4fa"/>
+  <rect x="740" y="440" width="440" height="18" fill="#f4fbff"/>
+  <rect x="100" y="300" width="240" height="16" fill="#e8f4fa"/>
+  <rect x="1580" y="300" width="240" height="16" fill="#e8f4fa"/>
+  <rect x="860" y="180" width="200" height="16" fill="#ffffff"/>
+</svg>
