@@ -68,6 +68,12 @@
   function onScreen(x,y,pad){ pad=pad||80; const sx=wx(x),sy=wy(y); return sx>-pad&&sy>-pad&&sx<VW+pad&&sy<VH+pad; }
   function useMap(id){ mapId=MAPS[id]?id:"canyon"; MAP=MAPS[mapId].plats||[]; SPAWNS=MAPS[mapId].spawns||[]; WALLS=MAPS[mapId].walls||MAP; }
   function hearDist(x,y){ const lis=players.find(o=>o.id===youId); return lis?Math.hypot(x-lis.x,y-lis.y):0; }
+  function gunLen(p){ return p.weapon==="sniper"?38:p.weapon==="shot"?32:p.weapon==="smg"?28:26; }
+  function muzzleOf(p){
+    const a=p.aim||0;
+    const len=8+gunLen(p);
+    return { x:p.x+Math.cos(a)*len, y:p.y-3+Math.sin(a)*len, a };
+  }
   function makePlayer(id,name,si,kind,gun){
     const s=spawnPoint(); const wpn=gun||selectedGun||"pistol";
     return { id,name,kind,skin:SKINS[si%SKINS.length],skinI:si%SKINS.length, x:s.x,y:s.y,vx:0,vy:0,dir:1,aim:0,walk:0,bob:0,grounded:false, hp:100,maxHp:100,jet:100,weapon:wpn,ammo:9999,nades:2, kills:0,deaths:0,alive:true,respawn:0,fireCd:0,nadeCd:0, input:{l:0,r:0,u:0,d:0,jet:0,fire:0,nade:0,swap:0} };
@@ -100,16 +106,16 @@
     return grounded;
   }
   function screenToWorld(sx,sy){ const c=cam(); return {x:(sx-c.ox)/c.sc, y:(sy-c.oy)/c.sc}; }
-  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-p.y,w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
-  function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-p.y,t.x-p.x); }
+  function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-(p.y-3),w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
+  function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-(p.y-3),t.x-p.x); }
   function fire(p){
     const g=GUN[p.weapon]||GUN.pistol; if(p.fireCd>0) return;
     p.fireCd=g.cd; if(window.SFX && onScreen(p.x,p.y,12)) SFX.shoot(p.weapon, hearDist(p.x,p.y));
-    const base=p.aim||0;
-    flashes.push({x:p.x+Math.cos(base)*42,y:p.y+Math.sin(base)*16,a:base,life:8,max:8});
+    const muz=muzzleOf(p); const base=muz.a;
+    flashes.push({x:muz.x,y:muz.y,a:base,life:8,max:8});
     for(let i=0;i<g.n;i++){
       const a=base+(Math.random()-0.5)*g.spread;
-      bullets.push({x:p.x+Math.cos(a)*42,y:p.y+Math.sin(a)*16,vx:Math.cos(a)*g.spd,vy:Math.sin(a)*g.spd,a,owner:p.id,dmg:g.dmg,life:p.weapon==="sniper"?78:56,sniper:p.weapon==="sniper"});
+      bullets.push({x:muz.x,y:muz.y,vx:Math.cos(a)*g.spd,vy:Math.sin(a)*g.spd,a,owner:p.id,dmg:g.dmg,life:p.weapon==="sniper"?78:56,sniper:p.weapon==="sniper"});
     }
   }
   function throwNade(p){ if(p.nadeCd>0||p.nades<=0) return; p.nades--; p.nadeCd=56; const a=p.aim||(p.dir>0?-0.4:Math.PI+0.4); nades.push({x:p.x,y:p.y,vx:Math.cos(a)*5.5,vy:Math.sin(a)*5.5-2.2,owner:p.id,fuse:78}); }
@@ -171,11 +177,28 @@
     else { ctx.fillStyle=p.skin.outfit; ctx.fillRect(-5*s,-3*s,10*s,12*s); }
     ctx.restore();
     const aim=p.aim||0;
-    ctx.save(); ctx.translate(x, y-2*s); ctx.rotate(aim);
-    const gw = (p.weapon==="sniper"?36:p.weapon==="shot"?30:26)*s;
-    if(fxImg.gun) ctx.drawImage(fxImg.gun, 3*s, -4*s, gw, 8*s);
-    else { ctx.fillStyle="#222"; ctx.fillRect(3*s,-2*s,22*s,4*s); }
+    const gw = gunLen(p)*s;
+    ctx.save(); ctx.translate(x, y-3*s); ctx.rotate(aim);
+    if(fxImg.gun) ctx.drawImage(fxImg.gun, 6*s, -4*s, gw, 8*s);
+    else { ctx.fillStyle="#1a1a1a"; ctx.fillRect(6*s,-2*s,gw,4*s); }
+    ctx.fillStyle="#2a2a2a"; ctx.fillRect(4*s,-3*s,5*s,6*s);
     ctx.restore();
+    if(p.id===youId){
+      const muz=muzzleOf(p);
+      const reach=p.weapon==="sniper"?520:280;
+      ctx.save();
+      ctx.strokeStyle="rgba(255,80,80,0.55)";
+      ctx.lineWidth=Math.max(1,1.2*s);
+      ctx.setLineDash([6,5]);
+      ctx.beginPath();
+      ctx.moveTo(wx(muz.x), wy(muz.y));
+      ctx.lineTo(wx(muz.x+Math.cos(aim)*reach), wy(muz.y+Math.sin(aim)*reach));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle="#ff4d4d";
+      ctx.beginPath(); ctx.arc(wx(muz.x), wy(muz.y), Math.max(2,2.2*s), 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
     const barW=28;
     ctx.fillStyle="#0009"; ctx.fillRect(x-barW/2,y-28*s,barW,4);
     ctx.fillStyle=p.hp>40?"#3dff8a":"#ff4d4d"; ctx.fillRect(x-barW/2,y-28*s,barW*(p.hp/(p.maxHp||100)),4);
