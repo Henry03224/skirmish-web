@@ -446,9 +446,13 @@
   const lobbyCodeEl=document.getElementById("lobbyCode");
   const lobbyStatusEl=document.getElementById("lobbyStatus");
   const lobbyListEl=document.getElementById("lobbyList");
-  const PEER_CFG={ config:{ iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}] } };
+  const PEER_CFG={ host:"0.peerjs.com", port:443, path:"/", secure:true, config:{ iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}] } };
   const MAXP=5, ROOMS=6;
-  function liveId(n){ return "swhenq"+n; }
+  function liveId(n){
+    const d=new Date();
+    const p=x=>String(x).padStart(2,"0");
+    return "sw"+d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+p(d.getUTCHours())+"r"+(n|0);
+  }
   function renderLobby(){
     if(!lobbyListEl) return;
     const skins=["assets/soldier_green.svg","assets/soldier_blue.svg","assets/soldier_pink.svg","assets/soldier_gold.svg","assets/soldier_red.svg","assets/soldier_lime.svg"];
@@ -528,21 +532,22 @@
   }
   function attachHost(conn){
     if(!net.conns.includes(conn)) net.conns.push(conn);
+    conn.on("open",()=>{ try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){} });
     conn.on("close",()=>{ if(conn.pid) dropPlayer(conn.pid); net.conns=net.conns.filter(c=>c!==conn); if(mode==="play" && players.filter(p=>p.kind==="human"&&p.id!==youId).length===0) connectionLost(); });
     conn.on("data",msg=>{
       if(msg.t==="leave"){ dropPlayer(msg.id); return; }
       if(msg.t==="hello"){
         if(msg.probe){ try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){} return; }
         if(lobbyRoster.length>=MAXP){ try{ conn.send({t:"full"}); }catch(e){} return; }
-        if(!lobbyRoster.find(p=>p.id===msg.id)){
-          conn.pid=msg.id;
-          lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
-          renderLobby();
-          sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
-          if(mode==="play"&&!players.find(p=>p.id===msg.id))
-            players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
-          try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){}
-        }
+        const exist=lobbyRoster.find(p=>p.id===msg.id);
+        conn.pid=msg.id;
+        if(!exist) lobbyRoster.push({id:msg.id,name:msg.name,gun:msg.gun||"pistol",ready:false});
+        else { exist.name=msg.name; exist.gun=msg.gun||exist.gun; }
+        renderLobby();
+        sendAll({t:"lobby",roster:lobbyRoster,slot:net.slot});
+        if(mode==="play"&&!players.find(p=>p.id===msg.id))
+          players.push(makePlayer(msg.id,msg.name,players.length,"human",msg.gun||"pistol"));
+        try{ conn.send({t:"lobby",roster:lobbyRoster,slot:net.slot}); }catch(e){}
       }
       if(msg.t==="ready") markReady(msg.id);
       if(msg.t==="ping"){ try{ conn.send({t:"pong",t0:msg.t0}); }catch(e){} }
