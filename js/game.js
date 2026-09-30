@@ -37,6 +37,7 @@
     {x:1402,y:302,w:442,h:16},{x:1427,y:432,w:109,h:14},{x:1562,y:432,w:122,h:14},{x:1709,y:432,w:134,h:14},
     {x:1427,y:605,w:422,h:16}
   ];
+  const WALLS = window.FORT_WALLS || FORT;
   const FSPAWN = [{x:180,y:280},{x:1740,y:280},{x:960,y:150},{x:220,y:840},{x:1700,y:840},{x:960,y:580}];
   const MAPS = { warehouse:{plats:FORT,spawns:FSPAWN}, ruins:{plats:FORT,spawns:FSPAWN}, desert:{plats:FORT,spawns:FSPAWN} };
   const bgImgs = {};
@@ -86,7 +87,24 @@
   }
   function startSolo(){ const name=(nameInput.value||"PLAYER").toUpperCase(); const list=[makePlayer("p1",name,0,"human",selectedGun)]; const bots=["smg","shot","sniper","pistol"]; for(let i=0;i<4;i++) list.push(makePlayer("bot"+i,"BOT "+(i+1),i+1,"bot",bots[i])); youId="p1"; localTwo=false; net=null; resetWorld(list); }
   function startLocal(){ resetWorld([makePlayer("p1",(nameInput.value||"P1").toUpperCase(),0,"human",selectedGun), makePlayer("p2","P2",1,"human","smg"), makePlayer("bot0","BOT 1",2,"bot","sniper"), makePlayer("bot1","BOT 2",3,"bot","shot")]); youId="p1"; localTwo=true; net=null; }
-  function platHit(p){ for(const m of MAP){ if(p.x>m.x && p.x<m.x+m.w && p.y+18>m.y && p.y+18<m.y+m.h+18 && p.vy>=0){ p.y=m.y-18; p.vy=0; return true; } } return false; }
+  function inWall(x,y){ for(const w of WALLS){ if(x>=w.x && x<=w.x+w.w && y>=w.y && y<=w.y+w.h) return true; } return false; }
+  function platHit(p){
+    let grounded=false;
+    for(const w of WALLS){
+      const left=p.x-10, right=p.x+10, top=p.y-16, bot=p.y+18;
+      if(right<=w.x || left>=w.x+w.w || bot<=w.y || top>=w.y+w.h) continue;
+      const ox=Math.min(right,w.x+w.w)-Math.max(left,w.x);
+      const oy=Math.min(bot,w.y+w.h)-Math.max(top,w.y);
+      if(ox<oy){
+        if(p.x<w.x+w.w*0.5) p.x=w.x-10; else p.x=w.x+w.w+10;
+        p.vx=0;
+      } else {
+        if(p.vy>=0 && (p.y+18-w.y)<22){ p.y=w.y-18; p.vy=0; grounded=true; }
+        else { p.y=w.y+w.h+16; if(p.vy<0) p.vy=0; }
+      }
+    }
+    return grounded;
+  }
   function screenToWorld(sx,sy){ const c=cam(); return {x:(sx-c.ox)/c.sc, y:(sy-c.oy)/c.sc}; }
   function readHuman(p, slot){ const i=p.input; if(slot===1){ if(localTwo){ i.l=keys.a?1:0; i.r=keys.d?1:0; i.jet=keys[" "]?1:0; i.fire=keys.j?1:0; i.nade=keys.k?1:0; i.swap=keys.q?1:0; } else { i.l=keys.a||keys.arrowleft||sticks.l.dx<-0.25?1:0; i.r=keys.d||keys.arrowright||sticks.l.dx>0.25?1:0; i.jet=keys[" "]||keys.shift||sticks.l.dy<-0.55?1:0; i.fire=keys.j||keys.z||keys.enter||(sticks.r.on && Math.hypot(sticks.r.dx,sticks.r.dy)>0.22)?1:0; i.nade=keys.k||keys.x?1:0; i.swap=keys.q||keys.e?1:0; if(sticks.r.on) p.aim=Math.atan2(sticks.r.dy,sticks.r.dx); else if(mouse.on){ const w=screenToWorld(mouse.sx,mouse.sy); p.aim=Math.atan2(w.y-p.y,w.x-p.x); } } p.dir = Math.cos(p.aim||0)>=0?1:-1; } else { i.l=keys.arrowleft?1:0; i.r=keys.arrowright?1:0; i.jet=keys.shift?1:0; i.fire=keys["/"]?1:0; i.nade=keys["."]?1:0; i.swap=keys[","]?1:0; } }
   function botThink(p){ const foes=players.filter(o=>o.alive&&o.id!==p.id); if(!foes.length) return; foes.sort((a,b)=>dist(a,p)-dist(b,p)); const t=foes[0], d=dist(t,p); const range=p.weapon==="sniper"?700:p.weapon==="shot"?220:420; p.input.l=t.x<p.x-24?1:0; p.input.r=t.x>p.x+24?1:0; p.input.jet=t.y<p.y-40||p.y>980?1:0; p.input.fire=d<range&&Math.random()<(p.weapon==="sniper"?0.07:0.16)?1:0; p.dir=t.x>=p.x?1:-1; p.aim=Math.atan2(t.y-p.y,t.x-p.x); }
@@ -130,9 +148,9 @@
     const left=MATCH_MS-(performance.now()-startAt);
     if(left<=0&&!winner){ winner=[...players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)[0]; mode="end"; document.getElementById("endTitle").textContent=winner.name+" wins"; document.getElementById("endBody").textContent=players.map(p=>p.name+" "+p.kills+"K/"+p.deaths+"D").join(" · "); end.classList.remove("hidden"); return; }
     for(const p of players){ if(p.kind==="bot") botThink(p); stepPlayer(p); }
-    for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; b.life--; for(const p of players){ if(!p.alive||p.id===b.owner) continue; if(Math.hypot(p.x-b.x,p.y-b.y)<18){ hurt(p,b.dmg,b.owner); b.life=0; } } }
+    for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; b.life--; if(inWall(b.x,b.y)){ b.life=0; continue; } for(const p of players){ if(!p.alive||p.id===b.owner) continue; if(Math.hypot(p.x-b.x,p.y-b.y)<18){ hurt(p,b.dmg,b.owner); b.life=0; } } }
     bullets=bullets.filter(b=>b.life>0);
-    for(const n of nades){ n.vy+=0.18; n.x+=n.vx; n.y+=n.vy; n.fuse--; if(n.fuse<=0) explode(n.x,n.y,n.owner,100,55); }
+    for(const n of nades){ n.vy+=0.18; n.x+=n.vx; n.y+=n.vy; if(inWall(n.x,n.y)){ n.vx*=-0.3; n.vy=0; n.y-=2; } n.fuse--; if(n.fuse<=0) explode(n.x,n.y,n.owner,100,55); }
     nades=nades.filter(n=>n.fuse>0);
     for(const q of particles){ q.x+=q.vx; q.y+=q.vy; q.life--; } particles=particles.filter(q=>q.life>0);
     for(const f of flashes) f.life--; flashes=flashes.filter(f=>f.life>0);
